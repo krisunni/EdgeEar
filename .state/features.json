@@ -122,6 +122,26 @@
       "implementation_plan": "implementation-plans/phase-10-adsb-aviation-correlation.md"
     },
     {
+      "id": "weather-radio",
+      "name": "NOAA Weather Radio Integration",
+      "description": "Continuous monitoring of NOAA weather radio on 162.550 MHz with Whisper transcription, structured NWS broadcast parser (temperature, wind, visibility, alerts, marine forecasts), weather conditions panel UI with priority alert banners, and 30s squelch-zero segmenter.",
+      "status": "done",
+      "phase": 12,
+      "components": ["transcriber", "flask-app", "frontend", "presets"],
+      "priority": "medium",
+      "implementation_plan": "implementation-plans/phase-12-noaa-weather-radio.md"
+    },
+    {
+      "id": "apt-satellite",
+      "name": "NOAA APT Satellite Imaging",
+      "description": "Auto-scheduled recording of NOAA-15/19 APT satellite passes at 137 MHz using PyEphem orbital prediction and Celestrak TLEs. Wideband FM capture via rtl_fm, decode with noaa-apt CLI to PNG. Satellite panel UI with pass countdown, recording progress, and decoded image display with history.",
+      "status": "done",
+      "phase": 13,
+      "components": ["apt-scheduler", "apt-decoder", "input-source", "flask-app", "frontend"],
+      "priority": "medium",
+      "implementation_plan": "implementation-plans/phase-13-noaa-apt-satellite-imaging.md"
+    },
+    {
       "id": "inference-stats",
       "name": "Inference Stats Dashboard",
       "description": "Real-time NPU/CPU performance metrics in the web UI: encoder/decoder latency, real-time factor, tokens/sec, decoder steps used, chunks processed, silence skip rate. Color-coded RTF indicator.",

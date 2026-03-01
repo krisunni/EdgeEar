@@ -24,7 +24,7 @@ NOAA-15 and NOAA-19 transmit live Earth imagery via APT (Automatic Picture Trans
 
 ## Tasks
 
-### T074: Create APT pass scheduler with TLE fetching and ephem prediction
+### T074: Create APT pass scheduler with TLE fetching and ephem prediction ✅
 
 **File:** `code/ravensdr/apt_scheduler.py`
 
@@ -47,7 +47,7 @@ Create the APT pass scheduler module:
 
 ---
 
-### T075: Create APT decoder with rtl_fm recording and noaa-apt integration
+### T075: Create APT decoder with rtl_fm recording and noaa-apt integration ✅
 
 **File:** `code/ravensdr/apt_decoder.py`
 
@@ -78,7 +78,7 @@ Create the APT recording and decoding module:
 
 ---
 
-### T076: Add SDR input source APT recording mode
+### T076: Add SDR input source APT recording mode ✅
 
 **File:** `code/ravensdr/input_source.py` (modify)
 
@@ -98,7 +98,7 @@ Add APT recording mode to the input source abstraction:
 
 ---
 
-### T077: Add satellite API routes and Socket.IO events to Flask app
+### T077: Add satellite API routes and Socket.IO events to Flask app ✅
 
 **File:** `code/ravensdr/app.py` (modify)
 
@@ -118,7 +118,7 @@ Add satellite endpoints and events:
 
 ---
 
-### T078: Create satellite panel JavaScript module
+### T078: Create satellite panel JavaScript module ✅
 
 **File:** `code/static/satellite.js`
 
@@ -143,7 +143,7 @@ Create the satellite panel frontend module:
 
 ---
 
-### T079: Create satellite panel CSS styles
+### T079: Create satellite panel CSS styles ✅
 
 **File:** `code/static/satellite.css`
 
@@ -164,7 +164,7 @@ Style the satellite panel consistent with existing ravenSDR UI:
 
 ---
 
-### T080: Integrate satellite panel into main UI
+### T080: Integrate satellite panel into main UI ✅
 
 **Files:** `code/templates/index.html` (modify), `code/static/ravensdr.js` (modify)
 
@@ -182,7 +182,7 @@ Add satellite panel to the main ravenSDR interface:
 
 ---
 
-### T081: Update setup script for APT dependencies
+### T081: Update setup script for APT dependencies ✅
 
 **File:** `code/setup.sh` (modify)
 
@@ -204,7 +204,7 @@ Add APT satellite imaging dependencies to the setup script:
 
 ---
 
-### T082: Write unit tests for APT scheduler and decoder
+### T082: Write unit tests for APT scheduler and decoder ✅
 
 **Files:** `code/tests/unit/test_apt_scheduler.py`, `code/tests/unit/test_apt_decoder.py`
 
@@ -233,7 +233,7 @@ Test the APT modules:
 
 ---
 
-### T083: Integration test for end-to-end APT pipeline
+### T083: Integration test for end-to-end APT pipeline ✅
 
 **File:** `code/tests/integration/test_apt_pipeline.py`
 

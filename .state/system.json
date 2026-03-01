@@ -1,8 +1,8 @@
 {
   "name": "ravenSDR",
   "description": "Real-time RF Signal Transcription Pipeline — RTL-SDR → Edge AI Inference (Hailo-8L NPU) → Live Web Interface",
-  "version": "0.3.0",
-  "status": "in-progress",
+  "version": "0.4.0",
+  "status": "running",
   "license": "AGPL-3.0",
   "stack": {
     "language": "Python",
@@ -56,9 +56,9 @@
     "9": {"name": "Setup Script & Requirements", "status": "done"},
     "10": {"name": "ADS-B Aviation Correlation & Voice-Activity Segmentation", "status": "done"},
     "11": {"name": "Inference Stats Dashboard", "status": "done"},
-    "12": {"name": "NOAA Weather Radio Integration", "status": "planned"},
-    "13": {"name": "NOAA APT Satellite Imaging", "status": "planned"}
+    "12": {"name": "NOAA Weather Radio Integration", "status": "done"},
+    "13": {"name": "NOAA APT Satellite Imaging", "status": "done"}
   },
-  "lastUpdated": "2026-02-28",
-  "notes": "Phases 1-11 implemented. Phase 12 planned: NOAA weather radio continuous monitoring on 162.550 MHz, NWS broadcast transcript parser, weather conditions panel, priority alert banners. Phase 13 planned: NOAA APT satellite imaging — auto-scheduled pass recording for NOAA-15/19 at 137 MHz, noaa-apt decoding, satellite image display panel."
+  "lastUpdated": "2026-03-01",
+  "notes": "Phases 1-13 implemented. All core features complete: RF reception, Whisper transcription (Hailo NPU + CPU fallback), web UI, frequency presets, error recovery, inference stats, NOAA weather radio, APT satellite imaging. Phase 10 (ADS-B flight tracking & VAD segmentation) planned."
 }

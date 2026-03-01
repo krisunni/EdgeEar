@@ -6,6 +6,7 @@
     <title>ravenSDR Console</title>
     <link rel="stylesheet" href="/static/ravensdr.css">
     <link rel="stylesheet" href="/static/map.css">
+    <link rel="stylesheet" href="/static/satellite.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css" />
 </head>
 <body>
@@ -128,6 +129,32 @@
             <div class="weather-content"></div>
         </div>
 
+        <!-- Satellite Panel -->
+        <div id="satellite-panel">
+            <div class="panel-header">
+                <label>Satellite Passes</label>
+            </div>
+
+            <div class="sat-countdown-wrap">
+                <span class="sat-countdown-label">Next pass</span>
+                <span id="sat-countdown">--:--:--</span>
+                <span id="sat-next-label"></span>
+            </div>
+
+            <div id="sat-recording-indicator" class="hidden">
+                <span class="sat-rec-dot"></span>
+                <span class="sat-rec-text">Recording satellite pass...</span>
+                <div class="sat-progress-bar">
+                    <div id="sat-recording-progress"></div>
+                </div>
+            </div>
+
+            <div id="sat-pass-list"></div>
+
+            <div id="sat-latest-image"></div>
+            <div id="sat-image-history"></div>
+        </div>
+
         <!-- ADS-B Map Panel -->
         <div id="adsb-panel" class="hidden">
             <div class="panel-header">
@@ -144,6 +171,7 @@
     <script src="https://unpkg.com/leaflet-rotatedmarker@0.2.0/leaflet.rotatedMarker.js"></script>
     <script src="/static/map.js"></script>
     <script src="/static/weather.js"></script>
+    <script src="/static/satellite.js"></script>
     <script src="/static/ravensdr.js"></script>
 </body>
 </html>

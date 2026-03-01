@@ -100,6 +100,42 @@
       "plans": [],
       "owner": null,
       "notes": "Added 2026-02-24. code/ravensdr/mel.py"
+    },
+    {
+      "id": "noaa-parser",
+      "name": "NOAA Weather Parser",
+      "description": "Structured parser for NWS weather radio broadcasts — extracts temperature, wind, humidity, visibility, marine forecasts, and priority alerts (warnings/watches) from Whisper transcripts using regex patterns",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "regex"],
+      "dependencies": ["transcriber"],
+      "plans": ["implementation-plans/phase-12-noaa-weather-radio.md"],
+      "owner": null,
+      "notes": "Added 2026-03-01. code/ravensdr/noaa_parser.py"
+    },
+    {
+      "id": "apt-scheduler",
+      "name": "APT Pass Scheduler",
+      "description": "Satellite pass prediction for NOAA-15/19 using PyEphem orbital mechanics and Celestrak TLEs. 24h lookahead, 20° minimum elevation filter, background scheduling loop with 10-minute advance notification via Socket.IO",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "ephem", "threading"],
+      "dependencies": [],
+      "plans": ["implementation-plans/phase-13-noaa-apt-satellite-imaging.md"],
+      "owner": null,
+      "notes": "Added 2026-03-01. code/ravensdr/apt_scheduler.py"
+    },
+    {
+      "id": "apt-decoder",
+      "name": "APT Image Decoder",
+      "description": "Records NOAA APT satellite passes using rtl_fm (137 MHz wideband FM, 60k sample rate, 11025 Hz output) piped to sox for WAV conversion, then decodes with noaa-apt CLI to PNG. Manages image storage and history",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "subprocess", "rtl_fm", "sox", "noaa-apt"],
+      "dependencies": ["input-source"],
+      "plans": ["implementation-plans/phase-13-noaa-apt-satellite-imaging.md"],
+      "owner": null,
+      "notes": "Added 2026-03-01. code/ravensdr/apt_decoder.py"
     }
   ]
 }

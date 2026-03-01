@@ -21,6 +21,8 @@ from ravensdr.adsb_receiver import (
 )
 from ravensdr.adsb_correlator import extract_callsigns, match_flights
 from ravensdr.noaa_parser import detect_priority_alert
+from ravensdr.apt_scheduler import AptScheduler
+from ravensdr.apt_decoder import AptDecoder
 
 logging.basicConfig(
     level=logging.INFO,
@@ -113,6 +115,34 @@ def _on_weather_update(parsed_data):
 
 
 transcriber.set_weather_callback(_on_weather_update)
+
+# ── APT Satellite Imaging ──
+apt_decoder = AptDecoder(emit_fn=socketio.emit)
+
+
+def _on_apt_pass_start(pass_info):
+    """Called by scheduler when a satellite pass begins — start recording."""
+    satellite = pass_info.get("satellite", "")
+    frequency = pass_info.get("frequency", "")
+
+    if input_source.enter_apt_mode(frequency):
+        apt_decoder.record_pass(pass_info)
+        socketio.emit("status", _get_status())
+
+        # Schedule exit from APT mode after recording duration
+        def _exit_apt():
+            import eventlet as _ev
+            _ev.sleep(pass_info.get("duration", 900) + 30)
+            if input_source.apt_mode:
+                input_source.exit_apt_mode()
+                socketio.emit("status", _get_status())
+
+        socketio.start_background_task(_exit_apt)
+    else:
+        log.warning("Could not enter APT mode for %s", satellite)
+
+
+apt_scheduler = AptScheduler(emit_fn=socketio.emit, on_pass_start=_on_apt_pass_start)
 
 
 def _input_error_callback(event, data):
@@ -240,6 +270,20 @@ def api_weather_current():
     return jsonify(_latest_weather)
 
 
+@app.route("/api/satellite/passes")
+def api_satellite_passes():
+    passes = apt_scheduler.get_next_passes(hours=24)
+    return jsonify(passes)
+
+
+@app.route("/api/satellite/latest-image")
+def api_satellite_latest_image():
+    image = apt_decoder.get_latest_image()
+    if image is None:
+        return jsonify({"error": "No decoded satellite images yet"}), 404
+    return jsonify(image)
+
+
 @app.route("/api/status")
 def api_status():
     return jsonify(_get_status())
@@ -289,6 +333,8 @@ def _get_status():
         "transcriber_backend": transcriber.backend,
         "adsb_enabled": ADSB_ENABLED,
         "adsb_scanning": adsb_scheduler.is_scanning if adsb_scheduler else False,
+        "apt_mode": input_source.apt_mode,
+        "apt_recording": apt_decoder.is_recording,
     }
 
 
@@ -385,6 +431,8 @@ def shutdown(signum=None, frame=None):
         adsb_receiver.stop()
     if adsb_scheduler:
         adsb_scheduler.stop()
+    apt_scheduler.stop()
+    apt_decoder.stop()
 
     if signum == signal.SIGTERM:
         socketio.stop()
@@ -411,4 +459,5 @@ if __name__ == "__main__":
         socketio.start_background_task(adsb_broadcast_loop)
         if adsb_scheduler:
             adsb_scheduler.start()
+    apt_scheduler.start()
     socketio.run(app, host="0.0.0.0", port=5000, debug=False)

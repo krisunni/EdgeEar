@@ -1,9 +1,29 @@
 {
   "versions": [
     {
+      "version": "0.4.0",
+      "date": "2026-03-01",
+      "status": "running",
+      "changes": [
+        {"type": "added", "description": "Phase 12 complete — NOAA weather radio integration: continuous 162.550 MHz monitoring, NWS broadcast transcript parser (temperature, wind, visibility, alerts, marine forecasts), weather conditions panel UI with priority alert banners, 30s squelch-zero segmenter, weather preset", "date": "2026-03-01"},
+        {"type": "added", "description": "noaa_parser.py — structured NWS broadcast parser: regex extraction for temperature, wind, humidity, visibility, marine forecasts, and priority alerts (warnings/watches)", "date": "2026-03-01"},
+        {"type": "added", "description": "weather.js — WeatherPanel class with live conditions display, priority alert banners (pulsing red), marine forecast section, auto-refresh on weather_update Socket.IO events", "date": "2026-03-01"},
+        {"type": "added", "description": "Continuous capture mode — 30s audio segmenter for squelch-zero NOAA broadcasts, weather callback pipeline from transcriber to parser to UI", "date": "2026-03-01"},
+        {"type": "added", "description": "Phase 13 complete — NOAA APT satellite imaging: auto-scheduled pass recording for NOAA-15/19 at 137 MHz, orbital prediction with ephem + Celestrak TLEs, rtl_fm wideband FM capture at 60k sample rate, noaa-apt CLI decoding to PNG", "date": "2026-03-01"},
+        {"type": "added", "description": "apt_scheduler.py — TLE-based pass prediction using PyEphem, 24h lookahead, 20° minimum elevation filter, Celestrak TLE refresh (24h cache), background scheduling loop with 10-min advance notification", "date": "2026-03-01"},
+        {"type": "added", "description": "apt_decoder.py — APT pass recorder using rtl_fm + sox pipeline, 11025 Hz sample rate, noaa-apt CLI decode with auto-rotate, decoded PNG storage, image history tracking", "date": "2026-03-01"},
+        {"type": "added", "description": "satellite.js + satellite.css — SatellitePanel UI: upcoming pass list with elevation indicators, countdown timer, recording progress bar, decoded image display with click-to-expand, image history thumbnails", "date": "2026-03-01"},
+        {"type": "added", "description": "InputSource APT mode — enter_apt_mode/exit_apt_mode methods for exclusive SDR access during satellite passes, automatic preset restore after recording", "date": "2026-03-01"},
+        {"type": "added", "description": "GET /api/satellite/passes and /api/satellite/latest-image endpoints for satellite pass schedule and decoded image retrieval", "date": "2026-03-01"},
+        {"type": "added", "description": "Unit tests for NOAA parser (24 tests), APT scheduler (TLE parsing, pass prediction, elevation filtering), APT decoder (command construction, state management), integration test for APT pipeline", "date": "2026-03-01"},
+        {"type": "changed", "description": "setup.sh — added ephem pip install, noaa-apt CLI install (apt or Rust build), APT directory creation (/tmp/ravensdr/apt/, static/images/apt/)", "date": "2026-03-01"},
+        {"type": "changed", "description": "requirements.txt — added ephem>=4.1.0 for orbital mechanics", "date": "2026-03-01"}
+      ]
+    },
+    {
       "version": "0.1.0",
       "date": "2026-02-24",
-      "status": "running",
+      "status": "done",
       "changes": [
         {"type": "added", "description": "Project scaffolding — directory structure, state files, architecture docs, implementation plans", "date": "2026-02-24"},
         {"type": "added", "description": "Input source abstraction — Tuner (rtl_fm) and StreamSource (ffmpeg) with auto-detection", "date": "2026-02-24"},

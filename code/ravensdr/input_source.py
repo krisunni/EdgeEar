@@ -33,6 +33,8 @@ class InputSource:
         self.current_preset = None
         self.sdr_connected = (mode == "SDR")
         self._error_callback = None
+        self._apt_mode = False
+        self._apt_saved_preset = None
 
         if mode == "SDR":
             self._source = Tuner(self.pcm_queue, self.audio_queue)
@@ -45,6 +47,9 @@ class InputSource:
 
     def tune(self, preset):
         """Tune to a preset. Uses stream_url in WEBSTREAM mode, freq in SDR mode."""
+        if self._apt_mode:
+            log.warning("Cannot tune — SDR is in APT satellite recording mode")
+            return False
         self.current_preset = preset
         if self.mode == "WEBSTREAM":
             stream_url = preset.get("stream_url")
@@ -117,3 +122,52 @@ class InputSource:
         if self.mode == "SDR":
             return self._source.gain
         return "N/A"
+
+    @property
+    def apt_mode(self):
+        return self._apt_mode
+
+    def enter_apt_mode(self, frequency_mhz):
+        """Pause normal scanning and dedicate SDR to APT satellite recording."""
+        if self.mode != "SDR":
+            log.warning("APT mode only supported in SDR mode")
+            return False
+        if self._apt_mode:
+            log.warning("Already in APT mode")
+            return False
+
+        self._apt_saved_preset = self.current_preset
+        was_running = self.is_running
+        if was_running:
+            self._source.stop()
+
+        self._apt_mode = True
+        log.info("Entered APT mode — SDR dedicated to %s", frequency_mhz)
+
+        if self._error_callback:
+            self._error_callback("apt_mode_entered", {
+                "message": f"SDR in satellite recording mode ({frequency_mhz})",
+            })
+        return True
+
+    def exit_apt_mode(self):
+        """Exit APT recording mode and resume normal scanning."""
+        if not self._apt_mode:
+            return
+
+        self._apt_mode = False
+        log.info("Exited APT mode")
+
+        # Resume previous preset if one was active
+        if self._apt_saved_preset:
+            preset = self._apt_saved_preset
+            self._apt_saved_preset = None
+            self.tune(preset)
+            log.info("Resumed scanning: %s", preset.get("label", ""))
+        else:
+            self._apt_saved_preset = None
+
+        if self._error_callback:
+            self._error_callback("apt_mode_exited", {
+                "message": "SDR satellite recording complete — normal scanning resumed",
+            })

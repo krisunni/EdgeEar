@@ -11,6 +11,7 @@
     let adsbEnabled = false;
     let mapVisible = false;
     let weatherPanel = null;
+    let satellitePanel = null;
 
     // ── DOM refs ──
     const modeBadge = document.getElementById("mode-badge");
@@ -40,6 +41,9 @@
         fetchPresets();
         if (window.WeatherPanel && !weatherPanel) {
             weatherPanel = new window.WeatherPanel(socket);
+        }
+        if (window.SatellitePanel && !satellitePanel) {
+            satellitePanel = new window.SatellitePanel(socket);
         }
     });
 
