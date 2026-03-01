@@ -45,11 +45,23 @@
 
                          <span class="highlight">InputSource</span>                    <span class="highlight">Transcriber</span>               <span class="highlight">Flask App</span>
 
-┌──────────────┐                                         ┌──────────────┐
-│  RTL-SDR #2  │─── 1090 MHz ──→ dump1090 ──→ JSON ────→│  ADS-B       │────────→ Leaflet.js Map
-│  (optional)  │                                         │  Correlator  │────────→ Callsign Match
-└──────────────┘                                         └──────────────┘
-                         <span class="highlight">Dual-dongle or time-share</span>       <span class="highlight">AdsbReceiver</span></div>
+<span class="highlight">ADS-B Tracking (enabled by default)</span>
+
+<span class="highlight">Default: Single-dongle time-share</span>          <span class="highlight">Optional: Dual-dongle</span>
+
+┌──────────────┐    60s listen     30s scan    ┌──────────────┐    ┌──────────────┐
+│  RTL-SDR     │───→ rtl_fm ─────→ pause ─────→│  dump1090    │───→│  ADS-B       │
+│  (device 0)  │←── resume ←───── stop ←──────│  1090 MHz    │    │  Correlator  │
+└──────────────┘                                └──────────────┘    │              │
+                    <span class="highlight">AdsbScanScheduler</span>                              │  Callsign    │
+                    alternates rtl_fm ↔ dump1090                   │  extraction  │
+                    on a single dongle                             │  + flight    │
+                                                                   │  matching    │
+┌──────────────┐    runs continuously                              │              │
+│  RTL-SDR #2  │─── 1090 MHz ──→ dump1090 ──→ JSON ──────────────→│              │──→ Leaflet.js
+│  (device 1)  │    (no scheduling needed)                         └──────────────┘    Map Panel
+└──────────────┘
+  <span class="highlight">ADSB_DUAL_DONGLE=true</span>                                            <span class="highlight">AdsbReceiver</span></div>
         </section>
 
         <section class="section">
@@ -68,6 +80,25 @@
                     <p>R828D tuner + RTL2832U with 1PPM TCXO. Receives 24MHz-1.7GHz via rtl_fm demodulation.</p>
                 </div>
             </div>
+        </section>
+
+        <section class="section">
+            <h2>ADS-B Configuration</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>ADSB_ENABLED</code></td><td><code>true</code></td><td>Enable ADS-B receiver (single-dongle time-share by default)</td></tr>
+                        <tr><td><code>ADSB_DUAL_DONGLE</code></td><td><code>false</code></td><td>Use dedicated RTL-SDR on device 1 — no time-sharing needed</td></tr>
+                        <tr><td><code>ADSB_SCAN_INTERVAL</code></td><td><code>60</code></td><td>Seconds of rtl_fm listening between ADS-B scans (single-dongle only)</td></tr>
+                        <tr><td><code>ADSB_SCAN_DURATION</code></td><td><code>30</code></td><td>Seconds per ADS-B scan window (single-dongle only)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p style="margin-top: 0.5rem; color: #888; font-size: 0.85rem;">
+                Single-dongle mode pauses rtl_fm every 60s for a 30s ADS-B scan, then resumes VHF reception.
+                Dual-dongle mode runs both concurrently with no gaps.
+            </p>
         </section>
 
         <section class="section">
