@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ravenSDR — Changelog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-brand">ravenSDR</div>
+        <div class="nav-links">
+            <a href="index.html">Overview</a>
+            <a href="system.html">System</a>
+            <a href="components.html">Components</a>
+            <a href="features.html">Features</a>
+            <a href="tasks.html">Tasks</a>
+            <a href="changelog.html" class="active">Changelog</a>
+            <a href="attributions.html">Attributions</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="hero">
+            <h1>Changelog</h1>
+            <p class="hero-sub">Version history and changes</p>
+        </header>
+
+        <section class="section">
+            <div class="filters" id="type-filters"></div>
+            <div id="changelog-content"></div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>ravenSDR &mdash; RF Signal Transcription Pipeline</p>
+    </footer>
+
+    <script>
+        function badge(type) {
+            return `<span class="badge badge-${type}">${type}</span>`;
+        }
+
+        let allVersions = [];
+        let typeFilter = 'all';
+
+        function render() {
+            const container = document.getElementById('changelog-content');
+            container.innerHTML = '';
+
+            allVersions.forEach(ver => {
+                const changes = typeFilter === 'all'
+                    ? ver.changes
+                    : ver.changes.filter(c => c.type === typeFilter);
+
+                if (changes.length === 0) return;
+
+                const section = document.createElement('div');
+                section.style.marginBottom = '2rem';
+
+                const header = document.createElement('div');
+                header.style.cssText = 'display:flex;align-items:center;gap:0.8rem;margin-bottom:1rem';
+                header.innerHTML = `
+                    <span style="font-family:var(--font-mono);font-size:1.1rem;font-weight:700;color:var(--accent-green)">v${ver.version}</span>
+                    <span style="font-size:0.8rem;color:var(--text-muted)">${ver.date}</span>
+                    ${ver.status ? `<span class="badge badge-${ver.status === 'running' ? 'in-progress' : ver.status}">${ver.status}</span>` : ''}
+                    <span style="font-size:0.75rem;color:var(--text-muted)">${changes.length} change${changes.length !== 1 ? 's' : ''}</span>
+                `;
+                section.appendChild(header);
+
+                // Group by date
+                const byDate = {};
+                changes.forEach(c => {
+                    const d = c.date || ver.date;
+                    if (!byDate[d]) byDate[d] = [];
+                    byDate[d].push(c);
+                });
+
+                Object.entries(byDate).sort(([a], [b]) => b.localeCompare(a)).forEach(([date, items]) => {
+                    const dateBlock = document.createElement('div');
+                    dateBlock.style.marginBottom = '1rem';
+
+                    const dateHeader = document.createElement('div');
+                    dateHeader.style.cssText = 'font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;font-family:var(--font-mono)';
+                    dateHeader.textContent = date;
+                    dateBlock.appendChild(dateHeader);
+
+                    items.forEach(change => {
+                        const item = document.createElement('div');
+                        item.className = 'changelog-item';
+                        item.innerHTML = `${badge(change.type)}<span>${change.description}</span>`;
+                        dateBlock.appendChild(item);
+                    });
+
+                    section.appendChild(dateBlock);
+                });
+
+                container.appendChild(section);
+            });
+        }
+
+        async function load() {
+            try {
+                const data = await fetch('../.state/changelog.json').then(r => r.json());
+                allVersions = data.versions;
+
+                // Collect all change types
+                const types = new Set();
+                allVersions.forEach(v => v.changes.forEach(c => types.add(c.type)));
+                const allTypes = ['all', ...types];
+
+                const filters = document.getElementById('type-filters');
+                allTypes.forEach(t => {
+                    const btn = document.createElement('button');
+                    btn.className = `filter-btn${t === 'all' ? ' active' : ''}`;
+                    btn.textContent = t;
+                    btn.addEventListener('click', () => {
+                        typeFilter = t;
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        render();
+                    });
+                    filters.appendChild(btn);
+                });
+
+                render();
+            } catch (e) {
+                console.error('Failed to load changelog:', e);
+            }
+        }
+        load();
+    </script>
+</body>
+</html>

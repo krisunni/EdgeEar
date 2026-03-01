@@ -1,0 +1,116 @@
+{
+  "workflows": [
+    {
+      "id": "radio-reception-pipeline",
+      "name": "Radio Reception Pipeline",
+      "description": "End-to-end flow from RF/stream input through transcription to browser display",
+      "trigger": "User selects preset in UI",
+      "steps": [
+        {
+          "step": 1,
+          "name": "Mode Detection",
+          "description": "Detect SDR hardware via rtl_test, select SDR or Web Stream mode",
+          "component": "input-source",
+          "status": "planned"
+        },
+        {
+          "step": 2,
+          "name": "Tune Source",
+          "description": "Start rtl_fm (SDR) or ffmpeg (web stream) with preset parameters",
+          "component": "tuner/stream-source",
+          "status": "planned"
+        },
+        {
+          "step": 3,
+          "name": "PCM Distribution",
+          "description": "Read 4096-byte PCM chunks from subprocess stdout, push to audio_pipe and whisper_pipe queues",
+          "component": "input-source",
+          "status": "planned"
+        },
+        {
+          "step": 4,
+          "name": "Audio Streaming",
+          "description": "Serve PCM as chunked WAV HTTP response to browser audio element",
+          "component": "audio-router",
+          "status": "planned"
+        },
+        {
+          "step": 5,
+          "name": "Transcription",
+          "description": "Accumulate 2-5s PCM chunks, run silence detection, invoke Whisper on Hailo-8L or CPU",
+          "component": "transcriber",
+          "status": "planned"
+        },
+        {
+          "step": 6,
+          "name": "Delivery",
+          "description": "Push transcript segments via Socket.IO to all connected browser clients",
+          "component": "flask-app",
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "frequency-switch",
+      "name": "Frequency Switch",
+      "description": "Switch to a new frequency or stream preset",
+      "trigger": "POST /api/tune",
+      "steps": [
+        {
+          "step": 1,
+          "name": "Stop Current Source",
+          "description": "Kill existing rtl_fm/ffmpeg subprocess",
+          "component": "tuner/stream-source",
+          "status": "planned"
+        },
+        {
+          "step": 2,
+          "name": "Drain Queues",
+          "description": "Drain audio_pipe and whisper_pipe to prevent stale audio reaching Whisper",
+          "component": "input-source",
+          "status": "planned"
+        },
+        {
+          "step": 3,
+          "name": "Start New Source",
+          "description": "Spawn new subprocess with updated frequency/URL parameters",
+          "component": "tuner/stream-source",
+          "status": "planned"
+        },
+        {
+          "step": 4,
+          "name": "Broadcast Status",
+          "description": "Emit status Socket.IO event to all clients with new frequency info",
+          "component": "flask-app",
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "dev-local",
+      "name": "Local Development Setup",
+      "description": "Run ravenSDR on a laptop without SDR hardware",
+      "trigger": "python3 app.py",
+      "steps": [
+        {
+          "step": 1,
+          "name": "Install Dependencies",
+          "description": "pip install from requirements.txt in venv",
+          "status": "planned"
+        },
+        {
+          "step": 2,
+          "name": "Start App",
+          "description": "python3 app.py — auto-detects no SDR, starts in Web Stream mode",
+          "status": "planned"
+        },
+        {
+          "step": 3,
+          "name": "Select Preset",
+          "description": "Open http://localhost:5000, select NOAA Monterey (confirmed live 24/7)",
+          "status": "planned"
+        }
+      ]
+    }
+  ]
+}

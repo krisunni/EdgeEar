@@ -1,0 +1,3 @@
+[submodule "hailort-drivers"]
+	path = hailort-drivers
+	url = https://github.com/hailo-ai/hailort-drivers.git

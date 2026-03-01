@@ -1,0 +1,105 @@
+{
+  "components": [
+    {
+      "id": "tuner",
+      "name": "Tuner (RTL-FM Process Manager)",
+      "description": "Manages rtl_fm subprocess lifecycle — start/stop/retune, reads raw PCM from stdout, distributes to audio and whisper queues",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "subprocess", "rtl_fm", "threading"],
+      "dependencies": ["rtl-sdr"],
+      "plans": ["implementation-plans/phase-2-input-source.md"],
+      "owner": null
+    },
+    {
+      "id": "stream-source",
+      "name": "Stream Source (Web Stream Ingest)",
+      "description": "Pulls live audio from public internet streams (LiveATC, NOAA) via ffmpeg subprocess, converts to 16kHz mono PCM for the pipeline",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "subprocess", "ffmpeg"],
+      "dependencies": ["ffmpeg"],
+      "plans": ["implementation-plans/phase-2-input-source.md"],
+      "owner": null
+    },
+    {
+      "id": "input-source",
+      "name": "Input Source Abstraction",
+      "description": "Unified interface wrapping Tuner (SDR) and StreamSource (web stream) behind a common PCM queue — downstream components are source-agnostic",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "queue"],
+      "dependencies": ["tuner", "stream-source"],
+      "plans": ["implementation-plans/phase-2-input-source.md"],
+      "owner": null
+    },
+    {
+      "id": "transcriber",
+      "name": "Transcriber (Hailo Whisper)",
+      "description": "Reads PCM from whisper queue, accumulates 10-second chunks (160k samples), runs silence detection, performs Whisper inference on Hailo-8L NPU via encoder/decoder HEF pipeline with repetition penalty, or faster-whisper CPU fallback",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "numpy", "torch", "hailo_platform", "transformers", "faster-whisper"],
+      "dependencies": ["input-source"],
+      "plans": ["implementation-plans/phase-3-transcriber.md"],
+      "owner": null,
+      "notes": "Hailo inference implemented 2026-02-24. Uses VDevice/InferModel API with whisper-tiny encoder (10s) + decoder (32 tokens). mel.py provides log-mel spectrogram. Models downloaded via scripts/download_models.sh."
+    },
+    {
+      "id": "audio-router",
+      "name": "Audio Router (HTTP Streaming)",
+      "description": "Reads PCM from audio queue, wraps in streaming WAV headers, serves as chunked HTTP response for browser audio playback",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "Flask", "WAV"],
+      "dependencies": ["input-source"],
+      "plans": ["implementation-plans/phase-4-audio-router.md"],
+      "owner": null
+    },
+    {
+      "id": "flask-app",
+      "name": "Flask Application (Backend API)",
+      "description": "Flask + Flask-SocketIO server — REST API routes for tuning/control, WebSocket events for real-time transcript/status/signal delivery, thread orchestration",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "Flask", "Flask-SocketIO", "eventlet"],
+      "dependencies": ["input-source", "transcriber", "audio-router", "presets"],
+      "plans": ["implementation-plans/phase-5-backend-api.md"],
+      "owner": null
+    },
+    {
+      "id": "frontend",
+      "name": "Frontend (Console UI)",
+      "description": "Single-page web interface — preset selector, signal meter, audio player, transcript feed, squelch/gain controls. Vanilla JS + Web Audio API + Socket.IO client",
+      "type": "frontend",
+      "status": "done",
+      "technology": ["HTML", "CSS", "Vanilla JS", "Web Audio API", "Socket.IO client"],
+      "dependencies": ["flask-app"],
+      "plans": ["implementation-plans/phase-6-frontend.md"],
+      "owner": null
+    },
+    {
+      "id": "presets",
+      "name": "Frequency Presets",
+      "description": "Preset definitions for SDR frequencies and web stream URLs — weather, aviation, marine, public safety, broadcast categories for the Redmond/Seattle area",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python"],
+      "dependencies": [],
+      "plans": ["implementation-plans/phase-7-presets.md"],
+      "owner": null
+    },
+    {
+      "id": "mel",
+      "name": "Mel Spectrogram Utility",
+      "description": "Log-mel spectrogram computation for Hailo Whisper encoder input. 80 mel bins, STFT n_fft=400, hop=160, 10s chunks (1000 frames). Uses pre-computed mel_filters.npz.",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "torch", "numpy"],
+      "dependencies": [],
+      "plans": [],
+      "owner": null,
+      "notes": "Added 2026-02-24. code/ravensdr/mel.py"
+    }
+  ]
+}

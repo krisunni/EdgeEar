@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ravenSDR — System Architecture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-brand">ravenSDR</div>
+        <div class="nav-links">
+            <a href="index.html">Overview</a>
+            <a href="system.html" class="active">System</a>
+            <a href="components.html">Components</a>
+            <a href="features.html">Features</a>
+            <a href="tasks.html">Tasks</a>
+            <a href="changelog.html">Changelog</a>
+            <a href="attributions.html">Attributions</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="hero">
+            <h1>System Architecture</h1>
+            <p class="hero-sub">RF Signal Transcription Pipeline</p>
+        </header>
+
+        <section class="section">
+            <h2>Signal Flow</h2>
+            <div class="signal-flow"><span class="highlight">RF Input</span>                    <span class="highlight">Processing</span>                 <span class="highlight">AI Inference</span>              <span class="highlight">Output</span>
+
+┌──────────────┐         ┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+│   RTL-SDR    │         │   16kHz PCM  │    ┌───→│  Audio       │────────→│  Browser     │
+│   Blog V4   │────────→│   Pipeline   │────┤    │  Router      │  WAV    │  &lt;audio&gt;     │
+│   (rtl_fm)   │  FM/AM  │              │    │    └──────────────┘         └──────────────┘
+└──────────────┘         │   or         │    │
+                         │              │    │    ┌──────────────┐         ┌──────────────┐
+┌──────────────┐         │   ffmpeg     │    └───→│  Whisper     │────────→│  Socket.IO   │
+│  Web Stream  │────────→│   resample   │         │  Hailo-8L    │  text   │  Transcript  │
+│  (ffmpeg)    │  HTTP   │              │         │  NPU         │         │  Feed        │
+└──────────────┘         └──────────────┘         └──────────────┘         └──────────────┘
+
+                         <span class="highlight">InputSource</span>                    <span class="highlight">Transcriber</span>               <span class="highlight">Flask App</span></div>
+        </section>
+
+        <section class="section">
+            <h2>Target Hardware</h2>
+            <div class="arch-grid">
+                <div class="arch-card">
+                    <h3>Raspberry Pi 5</h3>
+                    <p>Single-board computer running the full pipeline. Raspberry Pi OS Bookworm 64-bit.</p>
+                </div>
+                <div class="arch-card">
+                    <h3>Hailo AI Hat (8L)</h3>
+                    <p>13 TOPS neural processing unit. Runs Whisper-tiny encoder/decoder inference via HEF models.</p>
+                </div>
+                <div class="arch-card">
+                    <h3>RTL-SDR Blog V4</h3>
+                    <p>R828D tuner + RTL2832U with 1PPM TCXO. Receives 24MHz-1.7GHz via rtl_fm demodulation.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Technology Stack</h2>
+            <div class="table-wrap">
+                <table id="stack-table">
+                    <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>API Endpoints</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Method</th><th>Route</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><span class="badge badge-done">GET</span></td><td><code>/</code></td><td>Serve web UI</td></tr>
+                        <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/presets</code></td><td>List frequency presets</td></tr>
+                        <tr><td><span class="badge badge-changed">POST</span></td><td><code>/api/tune</code></td><td>Tune to frequency or preset</td></tr>
+                        <tr><td><span class="badge badge-changed">POST</span></td><td><code>/api/stop</code></td><td>Stop reception</td></tr>
+                        <tr><td><span class="badge badge-changed">POST</span></td><td><code>/api/squelch</code></td><td>Set squelch level</td></tr>
+                        <tr><td><span class="badge badge-changed">POST</span></td><td><code>/api/gain</code></td><td>Set tuner gain</td></tr>
+                        <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/status</code></td><td>Pipeline status</td></tr>
+                        <tr><td><span class="badge badge-done">GET</span></td><td><code>/audio-stream</code></td><td>Chunked WAV audio stream</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Socket.IO Events</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Event</th><th>Direction</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>transcript</code></td><td>Server &rarr; Client</td><td>New transcription text</td></tr>
+                        <tr><td><code>status</code></td><td>Server &rarr; Client</td><td>Pipeline status update</td></tr>
+                        <tr><td><code>signal_level</code></td><td>Server &rarr; Client</td><td>Signal strength (RMS)</td></tr>
+                        <tr><td><code>mode</code></td><td>Server &rarr; Client</td><td>SDR or WEBSTREAM mode</td></tr>
+                        <tr><td><code>error</code></td><td>Server &rarr; Client</td><td>Error notification</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>ravenSDR &mdash; RF Signal Transcription Pipeline</p>
+    </footer>
+
+    <script>
+        async function loadStack() {
+            try {
+                const sys = await fetch('../.state/system.json').then(r => r.json());
+                const tbody = document.querySelector('#stack-table tbody');
+                const labels = {
+                    language: 'Language',
+                    framework: 'Framework',
+                    sdrDemodulation: 'SDR Demodulation',
+                    webStreamIngest: 'Web Stream Ingest',
+                    npuInference: 'NPU Inference',
+                    speechToText: 'Speech-to-Text',
+                    cpuFallback: 'CPU Fallback',
+                    audioRouting: 'Audio Routing',
+                    frontend: 'Frontend',
+                    realTimeComms: 'Real-Time Comms'
+                };
+                Object.entries(sys.stack).forEach(([key, val]) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${labels[key] || key}</td><td><code>${val}</code></td>`;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {
+                console.error('Failed to load stack:', e);
+            }
+        }
+        loadStack();
+    </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{
+  "name": "ravenSDR",
+  "description": "Real-time RF Signal Transcription Pipeline — RTL-SDR → Edge AI Inference (Hailo-8L NPU) → Live Web Interface",
+  "version": "0.2.0",
+  "status": "in-progress",
+  "license": "AGPL-3.0",
+  "stack": {
+    "language": "Python",
+    "framework": "Flask + Flask-SocketIO",
+    "sdrDemodulation": "rtl_fm (rtl-sdr package)",
+    "webStreamIngest": "ffmpeg subprocess",
+    "npuInference": "Hailo-8L via hailo-apps Python SDK",
+    "speechToText": "Whisper (tiny/base .hef for Hailo)",
+    "cpuFallback": "faster-whisper",
+    "audioRouting": "ALSA loopback (snd-aloop)",
+    "frontend": "Vanilla JS + Web Audio API",
+    "realTimeComms": "Socket.IO (WebSocket)"
+  },
+  "targetHardware": {
+    "sbc": "Raspberry Pi 5",
+    "npu": "Hailo AI Hat (Hailo-8L, 13 TOPS)",
+    "sdr": "RTL-SDR Blog V4 (R828D tuner, RTL2832U, 1PPM TCXO)"
+  },
+  "targetOS": "Raspberry Pi OS (Bookworm, 64-bit)",
+  "repository": "ravenSDR",
+  "created": "2026-02-24",
+  "implementationPlans": [
+    "implementation-plans/phase-1-system-setup.md",
+    "implementation-plans/phase-2-input-source.md",
+    "implementation-plans/phase-3-transcriber.md",
+    "implementation-plans/phase-4-audio-router.md",
+    "implementation-plans/phase-5-backend-api.md",
+    "implementation-plans/phase-6-frontend.md",
+    "implementation-plans/phase-7-presets.md",
+    "implementation-plans/phase-8-error-handling.md",
+    "implementation-plans/phase-9-setup-script.md",
+    "implementation-plans/phase-10-adsb-aviation-correlation.md",
+    "implementation-plans/phase-11-inference-stats.md"
+  ],
+  "phases": {
+    "1": {"name": "System Dependencies & Environment Setup", "status": "done"},
+    "2": {"name": "Input Source Abstraction", "status": "done"},
+    "3": {"name": "Transcriber (Hailo Whisper)", "status": "done"},
+    "4": {"name": "Audio Router (HTTP Streaming)", "status": "done"},
+    "5": {"name": "Backend API (Flask App)", "status": "done"},
+    "6": {"name": "Frontend (Console UI)", "status": "done"},
+    "7": {"name": "Frequency Presets", "status": "done"},
+    "8": {"name": "Error Handling & Edge Cases", "status": "done"},
+    "9": {"name": "Setup Script & Requirements", "status": "done"},
+    "10": {"name": "ADS-B Aviation Correlation & Voice-Activity Segmentation", "status": "planned"},
+    "11": {"name": "Inference Stats Dashboard", "status": "done"}
+  },
+  "lastUpdated": "2026-02-27",
+  "notes": "Phases 1-7, 9 implemented and running on Pi 5. Hailo-8L NPU inference verified working with whisper-tiny encoder/decoder HEFs. Phase 8 in progress: graceful shutdown implemented (no orphaned rtl_fm/ffmpeg processes). Transcriber refactored to use Hailo context manager pattern (VDevice + configure inside inference loop). Critical fix: venv must use numpy<2 for Hailo C++ binding compatibility. Licensed under AGPL-3.0 with full attributions dashboard. GitHub Pages deployed with .nojekyll fix. Phase 10 planned: ADS-B flight tracking with callsign correlation + voice-activity audio segmentation. Phase 11 planned: inference stats dashboard (latency, RTF, tokens/s, silence rate)."
+}

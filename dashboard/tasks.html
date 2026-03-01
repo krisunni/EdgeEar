@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ravenSDR — Tasks</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-brand">ravenSDR</div>
+        <div class="nav-links">
+            <a href="index.html">Overview</a>
+            <a href="system.html">System</a>
+            <a href="components.html">Components</a>
+            <a href="features.html">Features</a>
+            <a href="tasks.html" class="active">Tasks</a>
+            <a href="changelog.html">Changelog</a>
+            <a href="attributions.html">Attributions</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="hero">
+            <h1>Tasks</h1>
+            <p class="hero-sub">Implementation task tracker</p>
+        </header>
+
+        <section class="section">
+            <div class="stats" id="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-total">--</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-done">--</div>
+                    <div class="stat-label">Done</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-planned">--</div>
+                    <div class="stat-label">Planned</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-progress">--</div>
+                    <div class="stat-label">Progress</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="filters" id="phase-filters"></div>
+            <div class="filters" id="status-filters" style="margin-top:0.4rem"></div>
+            <div class="table-wrap">
+                <table id="tasks-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Phase</th>
+                            <th>Task</th>
+                            <th>Feature</th>
+                            <th>Status</th>
+                            <th>Completed</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>ravenSDR &mdash; RF Signal Transcription Pipeline</p>
+    </footer>
+
+    <script>
+        function badge(status) {
+            const cls = status.replace(/\s+/g, '-').toLowerCase();
+            return `<span class="badge badge-${cls}">${status}</span>`;
+        }
+
+        let allTasks = [];
+        let phaseFilter = 'all';
+        let statusFilter = 'all';
+
+        function render() {
+            const tbody = document.querySelector('#tasks-table tbody');
+            tbody.innerHTML = '';
+            let filtered = allTasks;
+            if (phaseFilter !== 'all') filtered = filtered.filter(t => String(t.phase) === phaseFilter);
+            if (statusFilter !== 'all') filtered = filtered.filter(t => t.status === statusFilter);
+
+            filtered.forEach(t => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)">${t.id}</span></td>
+                    <td>${t.phase}</td>
+                    <td><strong>${t.title}</strong>${t.notes ? `<br><span style="font-size:0.75rem;color:var(--text-secondary)">${t.notes}</span>` : ''}</td>
+                    <td><span style="font-family:var(--font-mono);font-size:0.75rem">${t.feature}</span></td>
+                    <td>${badge(t.status)}</td>
+                    <td style="font-size:0.8rem;color:var(--text-muted)">${t.completed || '—'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function setFilter(type, value, btn) {
+            if (type === 'phase') phaseFilter = value;
+            else statusFilter = value;
+
+            const container = type === 'phase' ? 'phase-filters' : 'status-filters';
+            document.querySelectorAll(`#${container} .filter-btn`).forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            render();
+        }
+
+        async function load() {
+            try {
+                const data = await fetch('../.state/tasks.json').then(r => r.json());
+                allTasks = data.tasks;
+
+                // Stats
+                const done = allTasks.filter(t => t.status === 'done').length;
+                document.getElementById('stat-total').textContent = allTasks.length;
+                document.getElementById('stat-done').textContent = done;
+                document.getElementById('stat-planned').textContent = allTasks.filter(t => t.status === 'planned').length;
+                document.getElementById('stat-progress').textContent = Math.round((done / allTasks.length) * 100) + '%';
+
+                // Phase filters
+                const phases = ['all', ...new Set(allTasks.map(t => String(t.phase)))];
+                const pf = document.getElementById('phase-filters');
+                phases.forEach(p => {
+                    const btn = document.createElement('button');
+                    btn.className = `filter-btn${p === 'all' ? ' active' : ''}`;
+                    btn.textContent = p === 'all' ? 'All Phases' : `Phase ${p}`;
+                    btn.addEventListener('click', () => setFilter('phase', p, btn));
+                    pf.appendChild(btn);
+                });
+
+                // Status filters
+                const statuses = ['all', ...new Set(allTasks.map(t => t.status))];
+                const sf = document.getElementById('status-filters');
+                statuses.forEach(s => {
+                    const btn = document.createElement('button');
+                    btn.className = `filter-btn${s === 'all' ? ' active' : ''}`;
+                    btn.textContent = s;
+                    btn.addEventListener('click', () => setFilter('status', s, btn));
+                    sf.appendChild(btn);
+                });
+
+                render();
+            } catch (e) {
+                console.error('Failed to load tasks:', e);
+            }
+        }
+        load();
+    </script>
+</body>
+</html>

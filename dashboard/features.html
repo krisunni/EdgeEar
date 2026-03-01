@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ravenSDR — Features</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-brand">ravenSDR</div>
+        <div class="nav-links">
+            <a href="index.html">Overview</a>
+            <a href="system.html">System</a>
+            <a href="components.html">Components</a>
+            <a href="features.html" class="active">Features</a>
+            <a href="tasks.html">Tasks</a>
+            <a href="changelog.html">Changelog</a>
+            <a href="attributions.html">Attributions</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="hero">
+            <h1>Features</h1>
+            <p class="hero-sub">Capability tracking</p>
+        </header>
+
+        <section class="section">
+            <div class="filters" id="filters"></div>
+            <div class="table-wrap">
+                <table id="features-table">
+                    <thead>
+                        <tr>
+                            <th>Phase</th>
+                            <th>Feature</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Components</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>ravenSDR &mdash; RF Signal Transcription Pipeline</p>
+    </footer>
+
+    <script>
+        function badge(status) {
+            const cls = status.replace(/\s+/g, '-').toLowerCase();
+            return `<span class="badge badge-${cls}">${status}</span>`;
+        }
+
+        let allFeatures = [];
+        let activeFilter = 'all';
+
+        function render() {
+            const tbody = document.querySelector('#features-table tbody');
+            tbody.innerHTML = '';
+            const filtered = activeFilter === 'all'
+                ? allFeatures
+                : allFeatures.filter(f => f.status === activeFilter);
+
+            filtered.forEach(f => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${f.phase}</td>
+                    <td><strong>${f.name}</strong><br><span style="font-size:0.75rem;color:var(--text-secondary)">${f.description}</span></td>
+                    <td>${badge(f.status)}</td>
+                    <td>${badge(f.priority)}</td>
+                    <td><span style="font-family:var(--font-mono);font-size:0.75rem">${f.components.join(', ')}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function load() {
+            try {
+                const data = await fetch('../.state/features.json').then(r => r.json());
+                allFeatures = data.features;
+
+                // Build filter buttons
+                const statuses = ['all', ...new Set(allFeatures.map(f => f.status))];
+                const filters = document.getElementById('filters');
+                statuses.forEach(s => {
+                    const btn = document.createElement('button');
+                    btn.className = `filter-btn${s === 'all' ? ' active' : ''}`;
+                    btn.textContent = s;
+                    btn.addEventListener('click', () => {
+                        activeFilter = s;
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        render();
+                    });
+                    filters.appendChild(btn);
+                });
+
+                render();
+            } catch (e) {
+                console.error('Failed to load features:', e);
+            }
+        }
+        load();
+    </script>
+</body>
+</html>

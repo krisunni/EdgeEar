@@ -1,0 +1,16 @@
+{
+  "environment": "raspberry-pi",
+  "method": "setup.sh + systemd",
+  "services": [
+    {"name": "ravensdr", "type": "flask-app", "port": 5000, "status": "planned"},
+    {"name": "rtl_fm", "type": "subprocess", "status": "planned"},
+    {"name": "ffmpeg", "type": "subprocess", "status": "planned"}
+  ],
+  "targetHardware": {
+    "sbc": "Raspberry Pi 5",
+    "npu": "Hailo AI Hat (Hailo-8L, 13 TOPS)",
+    "sdr": "RTL-SDR Blog V4 (R828D tuner)"
+  },
+  "targetOS": "Raspberry Pi OS (Bookworm, 64-bit)",
+  "lastDeployed": null
+}

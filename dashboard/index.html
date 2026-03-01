@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ravenSDR — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-brand">ravenSDR</div>
+        <div class="nav-links">
+            <a href="index.html" class="active">Overview</a>
+            <a href="system.html">System</a>
+            <a href="components.html">Components</a>
+            <a href="features.html">Features</a>
+            <a href="tasks.html">Tasks</a>
+            <a href="changelog.html">Changelog</a>
+            <a href="attributions.html">Attributions</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="hero">
+            <h1>ravenSDR</h1>
+            <p class="hero-sub">Real-time RF Signal Transcription Pipeline</p>
+            <p class="hero-desc">RTL-SDR &rarr; Hailo-8L NPU &rarr; Live Web Interface</p>
+        </header>
+
+        <section class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-version">--</div>
+                <div class="stat-label">Version</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-phases">--</div>
+                <div class="stat-label">Phases Done</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-components">--</div>
+                <div class="stat-label">Components</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-tasks">--</div>
+                <div class="stat-label">Tasks Done</div>
+            </div>
+        </section>
+
+        <section class="section" id="demo-section" style="text-align:center;">
+            <h2>Demo</h2>
+            <img src="../code/static/demo-screenshot.png" alt="ravenSDR demo — live RF transcription" style="max-width:100%; border-radius:8px; border:1px solid var(--border);">
+        </section>
+
+        <section class="section">
+            <h2>Implementation Phases</h2>
+            <div class="table-wrap">
+                <table id="phases-table">
+                    <thead><tr><th>#</th><th>Phase</th><th>Status</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Components</h2>
+            <div class="card-grid" id="components-grid"></div>
+        </section>
+
+        <section class="section">
+            <h2>Recent Changes</h2>
+            <div class="changelog-preview" id="changelog-preview"></div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>ravenSDR &mdash; RF Signal Transcription Pipeline &mdash; <a href="attributions.html" style="color: var(--text-muted);">AGPL-3.0</a></p>
+    </footer>
+
+    <script>
+        const STATE = '../.state';
+
+        function badge(status) {
+            const cls = status.replace(/\s+/g, '-').toLowerCase();
+            return `<span class="badge badge-${cls}">${status}</span>`;
+        }
+
+        async function loadOverview() {
+            try {
+                const [sys, comp, tasks, changelog] = await Promise.all([
+                    fetch(`${STATE}/system.json`).then(r => r.json()),
+                    fetch(`${STATE}/components.json`).then(r => r.json()),
+                    fetch(`${STATE}/tasks.json`).then(r => r.json()),
+                    fetch(`${STATE}/changelog.json`).then(r => r.json())
+                ]);
+
+                // Stats
+                document.getElementById('stat-version').textContent = sys.version;
+
+                const phases = Object.values(sys.phases);
+                const phasesDone = phases.filter(p => p.status === 'done').length;
+                document.getElementById('stat-phases').textContent = `${phasesDone}/${phases.length}`;
+
+                const compDone = comp.components.filter(c => c.status === 'done').length;
+                document.getElementById('stat-components').textContent = `${compDone}/${comp.components.length}`;
+
+                const tasksDone = tasks.tasks.filter(t => t.status === 'done').length;
+                document.getElementById('stat-tasks').textContent = `${tasksDone}/${tasks.tasks.length}`;
+
+                // Phases table
+                const tbody = document.querySelector('#phases-table tbody');
+                Object.entries(sys.phases).forEach(([num, phase]) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${num}</td><td>${phase.name}</td><td>${badge(phase.status)}</td>`;
+                    tbody.appendChild(tr);
+                });
+
+                // Components grid
+                const grid = document.getElementById('components-grid');
+                comp.components.forEach(c => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <span class="card-title">${c.name}</span>
+                            ${badge(c.status)}
+                        </div>
+                        <p class="card-desc">${c.description}</p>
+                        <div class="card-tech">${c.technology.map(t => `<span class="tech-tag">${t}</span>`).join('')}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                // Changelog preview (last 5 changes)
+                const preview = document.getElementById('changelog-preview');
+                if (changelog.versions.length > 0) {
+                    const latest = changelog.versions[0];
+                    const recent = latest.changes.slice(-5).reverse();
+                    recent.forEach(change => {
+                        const div = document.createElement('div');
+                        div.className = 'changelog-item';
+                        div.innerHTML = `
+                            <span class="badge badge-${change.type}">${change.type}</span>
+                            <span>${change.description}</span>
+                        `;
+                        preview.appendChild(div);
+                    });
+                }
+
+            } catch (e) {
+                console.error('Failed to load state:', e);
+            }
+        }
+
+        loadOverview();
+    </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "terms": [
+    {"term": "RTL-SDR", "definition": "Software-Defined Radio using the RTL2832U chipset. ravenSDR uses the RTL-SDR Blog V4 with R828D tuner."},
+    {"term": "rtl_fm", "definition": "Command-line FM demodulator from the rtl-sdr package. Tunes to a frequency and outputs raw PCM audio to stdout."},
+    {"term": "PCM", "definition": "Pulse-Code Modulation — raw uncompressed digital audio. ravenSDR uses 16kHz, 16-bit, mono PCM throughout the pipeline."},
+    {"term": "Hailo-8L", "definition": "13 TOPS edge AI accelerator NPU on the Raspberry Pi AI Hat. Runs Whisper inference for speech-to-text."},
+    {"term": "HEF", "definition": "Hailo Executable Format — compiled neural network model file for Hailo NPU hardware."},
+    {"term": "faster-whisper", "definition": "CTranslate2-based Whisper implementation used as CPU fallback when Hailo NPU is not available."},
+    {"term": "snd-aloop", "definition": "ALSA loopback kernel module — creates virtual audio devices for routing PCM between processes."},
+    {"term": "InputSource", "definition": "Abstraction layer that wraps Tuner (SDR) and StreamSource (web stream) behind a unified PCM queue interface."},
+    {"term": "Icecast", "definition": "Open-source streaming media server protocol. Used by wxradio.org and other community radio streams."},
+    {"term": "APT", "definition": "Automatic Picture Transmission — analog image format transmitted by NOAA weather satellites on 137 MHz."},
+    {"term": "R828D", "definition": "Rafael Micro tuner IC in RTL-SDR Blog V4. Better sensitivity and lower noise floor than R820T2."},
+    {"term": "Bias Tee", "definition": "DC power injection on the RF coax. V4 has software-controllable 4.5V bias tee for external LNAs. Off by default."},
+    {"term": "RMS", "definition": "Root Mean Square — used for signal level measurement and silence detection in the audio pipeline."},
+    {"term": "Socket.IO", "definition": "WebSocket-based real-time communication library. Used for transcript, status, and signal level delivery to browser."},
+    {"term": "WBFM", "definition": "Wide-band FM — demodulation mode used for broadcast FM stations (88-108 MHz). Uses 200kHz bandwidth."}
+  ]
+}

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ravenSDR — Components</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-brand">ravenSDR</div>
+        <div class="nav-links">
+            <a href="index.html">Overview</a>
+            <a href="system.html">System</a>
+            <a href="components.html" class="active">Components</a>
+            <a href="features.html">Features</a>
+            <a href="tasks.html">Tasks</a>
+            <a href="changelog.html">Changelog</a>
+            <a href="attributions.html">Attributions</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="hero">
+            <h1>Components</h1>
+            <p class="hero-sub">System building blocks</p>
+        </header>
+
+        <section class="section">
+            <div class="stats" id="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-total">--</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-done">--</div>
+                    <div class="stat-label">Done</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-backend">--</div>
+                    <div class="stat-label">Backend</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-frontend">--</div>
+                    <div class="stat-label">Frontend</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="card-grid" id="components-grid"></div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>ravenSDR &mdash; RF Signal Transcription Pipeline</p>
+    </footer>
+
+    <script>
+        function badge(status) {
+            const cls = status.replace(/\s+/g, '-').toLowerCase();
+            return `<span class="badge badge-${cls}">${status}</span>`;
+        }
+
+        async function load() {
+            try {
+                const data = await fetch('../.state/components.json').then(r => r.json());
+                const comps = data.components;
+
+                document.getElementById('stat-total').textContent = comps.length;
+                document.getElementById('stat-done').textContent = comps.filter(c => c.status === 'done').length;
+                document.getElementById('stat-backend').textContent = comps.filter(c => c.type === 'backend').length;
+                document.getElementById('stat-frontend').textContent = comps.filter(c => c.type === 'frontend').length;
+
+                const grid = document.getElementById('components-grid');
+                comps.forEach(c => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    const deps = c.dependencies.length > 0
+                        ? `<div class="card-deps" style="margin-top:0.4rem;font-size:0.75rem;color:var(--text-muted)">Depends on: ${c.dependencies.join(', ')}</div>`
+                        : '';
+                    const notes = c.notes
+                        ? `<div style="margin-top:0.4rem;font-size:0.75rem;color:var(--text-muted);font-style:italic">${c.notes}</div>`
+                        : '';
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <span class="card-title">${c.name}</span>
+                            ${badge(c.status)}
+                        </div>
+                        <p class="card-desc">${c.description}</p>
+                        <div class="card-tech">${c.technology.map(t => `<span class="tech-tag">${t}</span>`).join('')}</div>
+                        ${deps}${notes}
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                console.error('Failed to load components:', e);
+            }
+        }
+        load();
+    </script>
+</body>
+</html>

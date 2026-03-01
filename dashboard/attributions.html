@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ravenSDR — Attributions &amp; Licenses</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .license-banner {
+            background: var(--bg-card);
+            border: 1px solid var(--accent-green);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .license-banner h2 {
+            border: none;
+            padding: 0;
+            margin-bottom: 0.5rem;
+            color: var(--accent-green);
+            font-family: var(--font-mono);
+        }
+        .license-banner p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0.3rem auto;
+            line-height: 1.6;
+        }
+        .license-banner a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+        .license-banner a:hover {
+            text-decoration: underline;
+        }
+
+        .dep-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+        .dep-table th {
+            position: sticky;
+            top: 52px;
+            z-index: 10;
+        }
+        .dep-table td {
+            vertical-align: top;
+        }
+        .dep-table td a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+        }
+        .dep-table td a:hover {
+            text-decoration: underline;
+        }
+        .dep-table .license-cell {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        .dep-table .usage-cell {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+        }
+
+        .category-row td {
+            background: var(--bg-secondary);
+            color: var(--accent-cyan);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.8rem 0.8rem 0.4rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .copyright-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .copyright-section h3 {
+            font-size: 0.85rem;
+            color: var(--accent-cyan);
+            margin-bottom: 0.6rem;
+        }
+        .copyright-section p, .copyright-section li {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .copyright-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        .copyright-section li {
+            padding: 0.2rem 0;
+        }
+        .copyright-section li::before {
+            content: "\00a9\00a0";
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-brand">ravenSDR</div>
+        <div class="nav-links">
+            <a href="index.html">Overview</a>
+            <a href="system.html">System</a>
+            <a href="components.html">Components</a>
+            <a href="features.html">Features</a>
+            <a href="tasks.html">Tasks</a>
+            <a href="changelog.html">Changelog</a>
+            <a href="attributions.html" class="active">Attributions</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="hero">
+            <h1>Attributions &amp; Licenses</h1>
+            <p class="hero-sub">Open-source projects that make ravenSDR possible</p>
+        </header>
+
+        <div class="license-banner">
+            <h2>AGPL-3.0</h2>
+            <p>
+                ravenSDR is licensed under the
+                <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">
+                    GNU Affero General Public License v3.0</a>.
+            </p>
+            <p>
+                If you modify and deploy this software &mdash; including running it as a network service &mdash;
+                you must make your source code available under the same license.
+            </p>
+        </div>
+
+        <!-- Python Dependencies -->
+        <section class="section">
+            <h2>Dependencies &amp; Third-Party Code</h2>
+            <div class="table-wrap">
+                <table class="dep-table">
+                    <thead>
+                        <tr>
+                            <th>Project</th>
+                            <th>License</th>
+                            <th>Copyright</th>
+                            <th>Used For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Python packages -->
+                        <tr class="category-row"><td colspan="4">Python Packages</td></tr>
+                        <tr>
+                            <td><a href="https://github.com/pallets/flask" target="_blank" rel="noopener">Flask</a></td>
+                            <td class="license-cell">BSD-3-Clause</td>
+                            <td>Pallets Projects</td>
+                            <td class="usage-cell">Web framework, HTTP routes, template rendering</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://github.com/miguelgrinberg/flask-socketio" target="_blank" rel="noopener">Flask-SocketIO</a></td>
+                            <td class="license-cell">MIT</td>
+                            <td>Miguel Grinberg</td>
+                            <td class="usage-cell">Real-time WebSocket communication</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://github.com/eventlet/eventlet" target="_blank" rel="noopener">Eventlet</a></td>
+                            <td class="license-cell">MIT</td>
+                            <td>Eventlet Contributors</td>
+                            <td class="usage-cell">Async concurrency for Flask-SocketIO</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://github.com/numpy/numpy" target="_blank" rel="noopener">NumPy</a></td>
+                            <td class="license-cell">BSD-3-Clause</td>
+                            <td>NumPy Developers</td>
+                            <td class="usage-cell">Audio signal processing, PCM conversion, mel spectrograms</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://github.com/SYSTRAN/faster-whisper" target="_blank" rel="noopener">faster-whisper</a></td>
+                            <td class="license-cell">MIT</td>
+                            <td>SYSTRAN</td>
+                            <td class="usage-cell">CPU fallback for Whisper speech-to-text inference</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://github.com/pytorch/pytorch" target="_blank" rel="noopener">PyTorch</a></td>
+                            <td class="license-cell">BSD-3-Clause</td>
+                            <td>Meta Platforms, Inc.</td>
+                            <td class="usage-cell">Mel spectrogram computation (STFT, filterbanks)</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://github.com/huggingface/transformers" target="_blank" rel="noopener">Hugging Face Transformers</a></td>
+                            <td class="license-cell">Apache-2.0</td>
+                            <td>Hugging Face, Inc.</td>
+                            <td class="usage-cell">Whisper tokenizer loading and token decoding</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://github.com/pypa/setuptools" target="_blank" rel="noopener">setuptools</a></td>
+                            <td class="license-cell">MIT</td>
+                            <td>Python Packaging Authority</td>
+                            <td class="usage-cell">Python package build system</td>
+                        </tr>
+
+                        <!-- AI Models -->
+                        <tr class="category-row"><td colspan="4">AI Models</td></tr>
+                        <tr>
+                            <td><a href="https://github.com/openai/whisper" target="_blank" rel="noopener">OpenAI Whisper</a></td>
+                            <td class="license-cell">MIT</td>
+                            <td>OpenAI</td>
+                            <td class="usage-cell">Whisper-tiny speech-to-text model (compiled to HEF for Hailo NPU)</td>
+                        </tr>
+
+                        <!-- Hardware SDKs -->
+                        <tr class="category-row"><td colspan="4">Hardware SDKs &amp; Drivers</td></tr>
+                        <tr>
+                            <td><a href="https://www.hailo.ai/" target="_blank" rel="noopener">Hailo SDK (HailoRT)</a></td>
+                            <td class="license-cell">Proprietary</td>
+                            <td>Hailo Technologies Ltd.</td>
+                            <td class="usage-cell">NPU inference runtime for Hailo-8L neural processor</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://github.com/hailo-ai/hailort-drivers" target="_blank" rel="noopener">hailort-drivers</a></td>
+                            <td class="license-cell">Proprietary</td>
+                            <td>Hailo Technologies Ltd.</td>
+                            <td class="usage-cell">Hailo kernel drivers and firmware (git submodule)</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://github.com/osmocom/rtl-sdr" target="_blank" rel="noopener">rtl-sdr</a></td>
+                            <td class="license-cell">GPL-2.0</td>
+                            <td>Osmocom</td>
+                            <td class="usage-cell">RTL2832U SDR driver; rtl_fm for RF demodulation, rtl_test for hardware detection</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://github.com/rtlsdrblog/rtl-sdr-blog" target="_blank" rel="noopener">RTL-SDR Blog V4</a></td>
+                            <td class="license-cell">GPL-2.0</td>
+                            <td>RTL-SDR Blog</td>
+                            <td class="usage-cell">Modified rtl-sdr drivers for RTL-SDR Blog V4 hardware</td>
+                        </tr>
+
+                        <!-- System Tools -->
+                        <tr class="category-row"><td colspan="4">System Tools</td></tr>
+                        <tr>
+                            <td><a href="https://github.com/FFmpeg/FFmpeg" target="_blank" rel="noopener">FFmpeg</a></td>
+                            <td class="license-cell">LGPL-2.1+</td>
+                            <td>FFmpeg Developers</td>
+                            <td class="usage-cell">Web stream ingest; decodes MP3/AAC to 16kHz mono PCM</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://github.com/chirlu/sox" target="_blank" rel="noopener">SoX</a></td>
+                            <td class="license-cell">GPL-2.0</td>
+                            <td>Chris Bagwell &amp; SoX Contributors</td>
+                            <td class="usage-cell">Audio preprocessing utilities</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://www.alsa-project.org/" target="_blank" rel="noopener">ALSA</a></td>
+                            <td class="license-cell">GPL/LGPL</td>
+                            <td>ALSA Project</td>
+                            <td class="usage-cell">Linux audio subsystem; snd-aloop virtual loopback for audio routing</td>
+                        </tr>
+
+                        <!-- Frontend -->
+                        <tr class="category-row"><td colspan="4">Frontend / JavaScript</td></tr>
+                        <tr>
+                            <td><a href="https://github.com/socketio/socket.io-client" target="_blank" rel="noopener">Socket.IO Client</a></td>
+                            <td class="license-cell">MIT</td>
+                            <td>Automattic, Inc.</td>
+                            <td class="usage-cell">Browser-side real-time communication (v4.7.4 via CDN)</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://fonts.google.com/specimen/Inter" target="_blank" rel="noopener">Inter (font)</a></td>
+                            <td class="license-cell">OFL-1.1</td>
+                            <td>Rasmus Andersson</td>
+                            <td class="usage-cell">UI sans-serif typeface</td>
+                        </tr>
+                        <tr>
+                            <td><a href="https://fonts.google.com/specimen/JetBrains+Mono" target="_blank" rel="noopener">JetBrains Mono (font)</a></td>
+                            <td class="license-cell">OFL-1.1</td>
+                            <td>JetBrains s.r.o.</td>
+                            <td class="usage-cell">UI monospace typeface</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Copyright Notices -->
+        <section class="section">
+            <h2>Copyright Notices</h2>
+
+            <div class="copyright-section">
+                <h3>ravenSDR</h3>
+                <p>Copyright 2024&ndash;2026 Kris. Licensed under AGPL-3.0.</p>
+                <p style="margin-top: 0.4rem;">
+                    This program is free software: you can redistribute it and/or modify it under the terms
+                    of the GNU Affero General Public License as published by the Free Software Foundation,
+                    either version 3 of the License, or (at your option) any later version.
+                </p>
+                <p style="margin-top: 0.4rem;">
+                    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+                    without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+                    See the GNU Affero General Public License for more details.
+                </p>
+            </div>
+
+            <div class="copyright-section">
+                <h3>Third-Party Copyrights</h3>
+                <ul>
+                    <li>Pallets Projects &mdash; Flask (BSD-3-Clause)</li>
+                    <li>Miguel Grinberg &mdash; Flask-SocketIO (MIT)</li>
+                    <li>Eventlet Contributors &mdash; Eventlet (MIT)</li>
+                    <li>NumPy Developers &mdash; NumPy (BSD-3-Clause)</li>
+                    <li>SYSTRAN &mdash; faster-whisper (MIT)</li>
+                    <li>Meta Platforms, Inc. &mdash; PyTorch (BSD-3-Clause)</li>
+                    <li>Hugging Face, Inc. &mdash; Transformers (Apache-2.0)</li>
+                    <li>OpenAI &mdash; Whisper (MIT)</li>
+                    <li>Hailo Technologies Ltd. &mdash; HailoRT SDK, hailort-drivers (Proprietary)</li>
+                    <li>Osmocom &mdash; rtl-sdr (GPL-2.0)</li>
+                    <li>RTL-SDR Blog &mdash; RTL-SDR Blog drivers (GPL-2.0)</li>
+                    <li>FFmpeg Developers &mdash; FFmpeg (LGPL-2.1+)</li>
+                    <li>Chris Bagwell &amp; SoX Contributors &mdash; SoX (GPL-2.0)</li>
+                    <li>ALSA Project &mdash; ALSA (GPL/LGPL)</li>
+                    <li>Automattic, Inc. &mdash; Socket.IO (MIT)</li>
+                    <li>Rasmus Andersson &mdash; Inter font (OFL-1.1)</li>
+                    <li>JetBrains s.r.o. &mdash; JetBrains Mono font (OFL-1.1)</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>License Compatibility Note</h2>
+            <div class="copyright-section">
+                <p>
+                    ravenSDR is licensed under AGPL-3.0, which is compatible with the licenses of all
+                    bundled dependencies. GPL-2.0 components (rtl-sdr, SoX) are invoked as separate
+                    processes, not linked into ravenSDR's code. Proprietary Hailo SDK components are
+                    used via their published Python API and are not redistributed with this project.
+                </p>
+                <p style="margin-top: 0.5rem;">
+                    If you redistribute or deploy a modified version of ravenSDR, you must comply with
+                    both the AGPL-3.0 and the license terms of all third-party components listed above.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>ravenSDR &mdash; RF Signal Transcription Pipeline &mdash; AGPL-3.0</p>
+    </footer>
+</body>
+</html>

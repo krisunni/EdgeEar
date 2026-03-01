@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ravenSDR Console</title>
+    <link rel="stylesheet" href="/static/ravensdr.css">
+</head>
+<body>
+    <header>
+        <h1>ravenSDR <span id="mode-badge" class="badge">--</span></h1>
+        <div id="connection-banner" class="banner hidden">Connecting...</div>
+        <div id="error-banner" class="banner banner-error hidden">
+            <span class="error-message"></span>
+            <button id="retry-btn" class="btn btn-sm btn-retry">Retry</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Preset Selector -->
+        <section id="preset-section">
+            <div id="category-tabs" class="tabs"></div>
+            <div id="preset-buttons" class="preset-grid"></div>
+        </section>
+
+        <!-- Signal Meter -->
+        <section id="signal-section">
+            <label>Signal</label>
+            <div class="meter-container">
+                <div id="signal-bar" class="meter-bar"></div>
+            </div>
+            <span id="signal-rms" class="meter-value">0</span>
+        </section>
+
+        <!-- Inference Stats -->
+        <section id="stats-section">
+            <label>Inference</label>
+            <div class="stats-grid">
+                <div class="stat">
+                    <span class="stat-label">Backend</span>
+                    <span class="stat-value" id="stat-backend">&mdash;</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Latency</span>
+                    <span class="stat-value" id="stat-latency">&mdash;</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">RTF</span>
+                    <span class="stat-value" id="stat-rtf">&mdash;</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Tok/s</span>
+                    <span class="stat-value" id="stat-tps">&mdash;</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Decoder</span>
+                    <span class="stat-value" id="stat-decoder">&mdash;</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Chunks</span>
+                    <span class="stat-value" id="stat-chunks">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Silence</span>
+                    <span class="stat-value" id="stat-silence">0%</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Controls -->
+        <section id="control-section">
+            <div class="control-group">
+                <label for="squelch-slider">Squelch</label>
+                <input type="range" id="squelch-slider" min="0" max="100" value="0">
+                <span id="squelch-value">0</span>
+            </div>
+            <div class="control-group">
+                <label for="gain-select">Gain</label>
+                <select id="gain-select">
+                    <option value="auto" selected>Auto</option>
+                    <option value="0">0 dB</option>
+                    <option value="10">10 dB</option>
+                    <option value="20">20 dB</option>
+                    <option value="30">30 dB</option>
+                    <option value="40">40 dB</option>
+                    <option value="50">50 dB</option>
+                </select>
+            </div>
+            <button id="stop-btn" class="btn btn-stop" disabled>Stop</button>
+        </section>
+
+        <!-- Audio Player -->
+        <section id="audio-section">
+            <label>Audio</label>
+            <div class="audio-controls">
+                <button id="audio-toggle" class="btn" disabled>Play Audio</button>
+                <span id="audio-status" class="status-text">No source</span>
+            </div>
+            <audio id="audio-player" preload="none"></audio>
+        </section>
+
+        <!-- Now Tuned -->
+        <section id="tuned-section">
+            <span id="tuned-label" class="tuned-info">Not tuned</span>
+            <span id="tuned-freq" class="tuned-freq"></span>
+        </section>
+
+        <!-- Transcript Feed -->
+        <section id="transcript-section">
+            <div class="transcript-header">
+                <label>Transcript</label>
+                <div>
+                    <button id="clear-btn" class="btn btn-sm">Clear</button>
+                    <button id="copy-btn" class="btn btn-sm">Copy</button>
+                </div>
+            </div>
+            <div id="transcript-feed" class="transcript-feed"></div>
+        </section>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="/static/ravensdr.js"></script>
+</body>
+</html>

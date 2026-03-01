@@ -1,0 +1,25 @@
+{
+  "diagrams": [
+    {
+      "id": "system-architecture",
+      "name": "System Architecture",
+      "description": "High-level data flow from RF input through transcription to browser",
+      "type": "flowchart",
+      "mermaid": "graph TD\n    A[RTL-SDR Blog V4] -->|USB| B[rtl_fm subprocess]\n    C[LiveATC / NOAA streams] -->|HTTP| D[ffmpeg subprocess]\n    B -->|16kHz PCM| E[InputSource Abstraction]\n    D -->|16kHz PCM| E\n    E -->|whisper_pipe| F[Transcriber - Hailo-8L / faster-whisper]\n    E -->|audio_pipe| G[Audio Router - HTTP WAV Stream]\n    F -->|transcript_queue| H[Socket.IO Push]\n    G -->|/audio-stream| I[Browser Audio Player]\n    H -->|WebSocket| J[Browser Transcript Feed]\n    I --> K[ravenSDR Console UI]\n    J --> K"
+    },
+    {
+      "id": "input-mode-selection",
+      "name": "Input Mode Selection",
+      "description": "Auto-detection flow for SDR vs Web Stream mode",
+      "type": "flowchart",
+      "mermaid": "graph TD\n    A[Startup] --> B{rtl_test -t}\n    B -->|exit 0| C[SDR Mode]\n    B -->|exit != 0| D[Web Stream Mode]\n    C --> E[Tuner - rtl_fm]\n    D --> F[StreamSource - ffmpeg]\n    E --> G[InputSource PCM Queue]\n    F --> G"
+    },
+    {
+      "id": "thread-model",
+      "name": "Thread Model",
+      "description": "Four concurrent threads in the Flask application",
+      "type": "flowchart",
+      "mermaid": "graph LR\n    T1[Thread 1: Flask/SocketIO Main] --> HTTP[HTTP + WebSocket]\n    T2[Thread 2: _read_loop] --> PCM[Read rtl_fm/ffmpeg stdout]\n    T3[Thread 3: _inference_loop] --> WHI[Whisper on PCM chunks]\n    T4[Thread 4: signal_meter_loop] --> RMS[Sample RMS every 500ms]"
+    }
+  ]
+}

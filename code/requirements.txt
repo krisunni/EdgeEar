@@ -1,0 +1,7 @@
+flask>=3.0.0
+flask-socketio>=5.3.6
+numpy>=1.26.0,<2  # Hailo C++ bindings (pyhailort) require numpy 1.x ABI
+faster-whisper>=1.0.0
+eventlet>=0.35.0
+torch>=2.0.0
+transformers>=4.36.0
