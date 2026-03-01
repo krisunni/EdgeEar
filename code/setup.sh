@@ -87,6 +87,7 @@ pip install --upgrade pip -q
 
 echo "Installing Python packages (torch is large, this may take a few minutes)..."
 pip install -r "$(dirname "$0")/requirements.txt"
+pip install -e "$(dirname "$0")" -q
 pass "Python packages installed"
 
 # ── Step 6: Test RTL-SDR ──
@@ -152,5 +153,5 @@ echo "============================================"
 echo ""
 echo "To start ravenSDR:"
 echo "  source $VENV_DIR/bin/activate"
-echo "  python3 $(dirname "$0")/ravensdr/app.py"
+echo "  python3 -m ravensdr.app"
 echo ""

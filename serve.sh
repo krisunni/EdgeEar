@@ -8,6 +8,7 @@ if [ ! -d "$SCRIPT_DIR/venv" ]; then
     echo "Creating virtual environment..."
     python3 -m venv "$SCRIPT_DIR/venv"
     "$SCRIPT_DIR/venv/bin/pip" install -r "$SCRIPT_DIR/code/requirements.txt"
+    "$SCRIPT_DIR/venv/bin/pip" install -e "$SCRIPT_DIR/code"
 fi
 
 source "$SCRIPT_DIR/venv/bin/activate"
