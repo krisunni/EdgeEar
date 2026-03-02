@@ -2,7 +2,13 @@
 
 import logging
 import queue
-import subprocess
+
+# Use the REAL subprocess module, not eventlet's green version.
+try:
+    from eventlet.patcher import original
+    subprocess = original("subprocess")
+except ImportError:
+    import subprocess
 
 from ravensdr.tuner import Tuner
 from ravensdr.stream_source import StreamSource
@@ -11,7 +17,22 @@ log = logging.getLogger(__name__)
 
 
 def detect_sdr():
-    """Check if an RTL-SDR device is connected."""
+    """Check if an RTL-SDR device is connected (without opening it exclusively)."""
+    # First try lsusb — works even if another process (dump1090) holds the device
+    try:
+        result = subprocess.run(
+            ["lsusb"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        # RTL-SDR Blog V4 uses 0bda:2838 (Realtek RTL2838)
+        if "0bda:2838" in result.stdout or "RTL2838" in result.stdout:
+            return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    # Fallback to rtl_test if lsusb not available
     try:
         result = subprocess.run(
             ["rtl_test", "-t"],

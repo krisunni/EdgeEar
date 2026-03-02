@@ -415,12 +415,8 @@ def sdr_health_loop():
 _shutdown_called = False
 
 
-def shutdown(signum=None, frame=None):
-    global _shutdown_called
-    if _shutdown_called:
-        return
-    _shutdown_called = True
-
+def _do_shutdown(signum=None):
+    """Actual shutdown work — runs in a greenlet, safe to call blocking functions."""
     sig_name = signal.Signals(signum).name if signum else "atexit"
     log.info("Shutting down (triggered by %s)...", sig_name)
 
@@ -437,9 +433,19 @@ def shutdown(signum=None, frame=None):
     if signum == signal.SIGTERM:
         socketio.stop()
 
+
+def shutdown(signum=None, frame=None):
+    global _shutdown_called
+    if _shutdown_called:
+        return
+    _shutdown_called = True
+
     if signum == signal.SIGINT:
         # Restore default handler so a second Ctrl+C force-kills immediately
         signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    # Run shutdown in a background greenlet to avoid blocking the mainloop
+    socketio.start_background_task(_do_shutdown, signum)
 
 
 signal.signal(signal.SIGTERM, shutdown)

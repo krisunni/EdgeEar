@@ -12,7 +12,7 @@ import requests
 log = logging.getLogger(__name__)
 
 # Celestrak TLE source
-TLE_URL = "https://celestrak.org/NOAA/elements/noaa.txt"
+TLE_URL = "https://celestrak.org/NORAD/elements/gp.php?GROUP=weather&FORMAT=tle"
 TLE_CACHE_FILE = "/tmp/ravensdr/apt/tle_cache.txt"
 TLE_REFRESH_HOURS = 24
 

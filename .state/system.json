@@ -59,6 +59,6 @@
     "12": {"name": "NOAA Weather Radio Integration", "status": "done"},
     "13": {"name": "NOAA APT Satellite Imaging", "status": "done"}
   },
-  "lastUpdated": "2026-03-01",
-  "notes": "Phases 1-13 implemented. All core features complete: RF reception, Whisper transcription (Hailo NPU + CPU fallback), web UI, frequency presets, error recovery, inference stats, NOAA weather radio, APT satellite imaging. Phase 10 (ADS-B flight tracking & VAD segmentation) planned."
+  "lastUpdated": "2026-03-02",
+  "notes": "Phases 1-13 implemented. All core features complete: RF reception, Whisper transcription (Hailo NPU + CPU fallback), web UI, frequency presets, error recovery, inference stats, NOAA weather radio, APT satellite imaging. Hotfix applied: eventlet subprocess isolation, NPU indentation, Celestrak TLE URL, shutdown crash, SDR detection, setup.sh rtl_test zombie."
 }

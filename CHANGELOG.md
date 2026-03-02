@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.1] — 2026-03-02
+
+### Fixed — Eventlet subprocess isolation & hardware integration bugs
+
+- **Eventlet subprocess isolation**: tuner, stream_source, and input_source now use `eventlet.patcher.original("subprocess")` and `original("threading")` to get real stdlib modules. Eventlet's green subprocess caused fd conflicts ("Second simultaneous read on fileno"), broken `wait()` timeouts, and orphaned processes
+- **NPU inference loop indentation**: mel spectrogram → encoder → decoder → emit block was outside the `for chunk in vad_segments:` loop, causing `UnboundLocalError` and immediate CPU fallback
+- **Celestrak TLE URL**: changed to `gp.php?GROUP=weather&FORMAT=tle` (old path returned 404)
+- **Shutdown crash**: `shutdown()` now spawns `_do_shutdown()` via `socketio.start_background_task()` to avoid `RuntimeError: do not call blocking functions from the mainloop`
+- **SDR detection**: uses `lsusb` to check for RTL2838 USB ID (`0bda:2838`) — works even when dump1090 holds exclusive device access
+- **Process cleanup**: tuner/stream_source `stop()` uses `os.kill()` + `os.waitpid()` directly, bypassing eventlet's broken `subprocess.wait()`
+- **setup.sh rtl_test zombie**: `timeout --signal=KILL` prevents unkillable `rtl_test` from holding the dongle indefinitely; also stops dump1090 before SDR test
+- **LiveATC stream headers**: added `User-Agent` and `Referer` headers to ffmpeg commands (LiveATC blocks headless requests)
+- **Duplicate preset**: removed duplicate KUOW-FM entry from presets
+
 ## [0.3.0] — 2026-02-28
 
 ### Added — Phase 10: ADS-B Aviation Correlation & Voice-Activity Segmentation

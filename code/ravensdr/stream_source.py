@@ -1,10 +1,41 @@
 # Web stream ingest via ffmpeg (Mode B)
 
 import logging
-import subprocess
-import threading
+import os
+import signal as _signal
+import time
+
+# Use REAL stdlib modules, not eventlet's green versions.
+try:
+    from eventlet.patcher import original
+    subprocess = original("subprocess")
+    threading = original("threading")
+except ImportError:
+    import subprocess
+    import threading
 
 log = logging.getLogger(__name__)
+
+
+def _kill_pid(pid):
+    """Kill a process by PID using raw os calls (bypasses eventlet)."""
+    try:
+        os.kill(pid, _signal.SIGTERM)
+    except OSError:
+        return
+    for _ in range(20):
+        try:
+            result = os.waitpid(pid, os.WNOHANG)
+            if result[0] != 0:
+                return
+        except ChildProcessError:
+            return
+        time.sleep(0.1)
+    try:
+        os.kill(pid, _signal.SIGKILL)
+        os.waitpid(pid, 0)
+    except OSError:
+        pass
 
 
 class StreamSource:
@@ -16,6 +47,7 @@ class StreamSource:
         self.current_url = None
         self.is_running = False
         self._process = None
+        self._pid = None
         self._thread = None
         self._stop_event = threading.Event()
         self._retries = 0
@@ -28,9 +60,11 @@ class StreamSource:
         self._retries = 0
         self._start_ffmpeg()
 
-    def _start_ffmpeg(self):
-        cmd = [
+    def _build_cmd(self):
+        return [
             "ffmpeg",
+            "-user_agent", "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36",
+            "-headers", "Referer: https://www.liveatc.net/\r\n",
             "-reconnect", "1",
             "-reconnect_streamed", "1",
             "-reconnect_delay_max", "5",
@@ -43,6 +77,8 @@ class StreamSource:
             "pipe:1",
         ]
 
+    def _start_ffmpeg(self):
+        cmd = self._build_cmd()
         log.info("Starting ffmpeg: %s", self.current_url)
         try:
             self._process = subprocess.Popen(
@@ -50,6 +86,7 @@ class StreamSource:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
+            self._pid = self._process.pid
         except FileNotFoundError:
             log.error("ffmpeg not found — is it installed?")
             raise
@@ -60,24 +97,18 @@ class StreamSource:
 
     def stop(self):
         self._stop_event.set()
-        if self._process and self._process.poll() is None:
-            # Close pipes first to unblock the read loop
-            for pipe in (self._process.stdout, self._process.stderr):
-                try:
-                    pipe.close()
-                except Exception:
-                    pass
-            self._process.terminate()
-            try:
-                self._process.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                self._process.kill()
-                try:
-                    self._process.wait(timeout=2)
-                except subprocess.TimeoutExpired:
-                    log.warning("ffmpeg process did not exit after kill")
-            log.info("ffmpeg stopped")
+        pid = self._pid
+        if pid:
+            if self._process:
+                for pipe in (self._process.stdout, self._process.stderr):
+                    try:
+                        pipe.close()
+                    except Exception:
+                        pass
+            _kill_pid(pid)
+            log.info("ffmpeg stopped (pid %d)", pid)
         self._process = None
+        self._pid = None
         if self._thread is not None:
             self._thread.join(timeout=3)
             self._thread = None
@@ -93,28 +124,23 @@ class StreamSource:
 
     def _kill_process(self):
         """Kill current ffmpeg process without touching threads or queues."""
-        if self._process and self._process.poll() is None:
-            for pipe in (self._process.stdout, self._process.stderr):
-                try:
-                    pipe.close()
-                except Exception:
-                    pass
-            self._process.terminate()
-            try:
-                self._process.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                self._process.kill()
-                try:
-                    self._process.wait(timeout=2)
-                except Exception:
-                    pass
+        pid = self._pid
+        if pid:
+            if self._process:
+                for pipe in (self._process.stdout, self._process.stderr):
+                    try:
+                        pipe.close()
+                    except Exception:
+                        pass
+            _kill_pid(pid)
         self._process = None
+        self._pid = None
 
     def _read_loop(self):
-        import time
         while not self._stop_event.is_set():
             try:
-                chunk = self._process.stdout.read(4096)
+                stdout = self._process.stdout
+                chunk = stdout.read(4096)
                 if not chunk:
                     if self._stop_event.is_set():
                         break
@@ -149,24 +175,13 @@ class StreamSource:
 
     def _restart_ffmpeg(self):
         """Restart ffmpeg process in-place (same thread, no new thread)."""
-        cmd = [
-            "ffmpeg",
-            "-reconnect", "1",
-            "-reconnect_streamed", "1",
-            "-reconnect_delay_max", "5",
-            "-i", self.current_url,
-            "-vn",
-            "-acodec", "pcm_s16le",
-            "-ar", "16000",
-            "-ac", "1",
-            "-f", "s16le",
-            "pipe:1",
-        ]
+        cmd = self._build_cmd()
         log.info("Restarting ffmpeg: %s", self.current_url)
         try:
             self._process = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
+            self._pid = self._process.pid
         except FileNotFoundError:
             log.error("ffmpeg not found during restart")
             self.is_running = False

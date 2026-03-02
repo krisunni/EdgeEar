@@ -143,15 +143,6 @@ PRESETS = [
     },
     # ── Broadcast ──
     {
-        "id": "kuow-fm",
-        "label": "KUOW 94.9",
-        "freq": "94.900M",
-        "mode": "wbfm",
-        "category": "broadcast",
-        "squelch": 0,
-        "note": "NPR Seattle",
-    },
-    {
         "id": "kexp-fm",
         "label": "KEXP 90.3",
         "freq": "90.300M",

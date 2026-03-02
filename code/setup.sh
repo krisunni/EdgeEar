@@ -139,10 +139,26 @@ fi
 echo ""
 echo "── Step 7: RTL-SDR test ──"
 if command -v rtl_test &>/dev/null; then
-    if timeout 5 rtl_test -t 2>&1 | grep -q "R828D"; then
+    # Stop dump1090 temporarily if running — it holds exclusive access to the SDR
+    dump1090_was_running=false
+    if systemctl is-active --quiet dump1090-mutability 2>/dev/null; then
+        dump1090_was_running=true
+        sudo systemctl stop dump1090-mutability
+        sleep 1
+    fi
+
+    rtl_output=$(timeout --signal=KILL 5 rtl_test -t 2>&1 || true)
+    if echo "$rtl_output" | grep -q "R828D"; then
         pass "RTL-SDR Blog V4 detected (R828D tuner)"
+    elif echo "$rtl_output" | grep -q "usb_open\|usb_claim"; then
+        warn "RTL-SDR device busy or permission denied — check USB access"
     else
         warn "RTL-SDR not detected — web stream mode will be used"
+    fi
+
+    # Restart dump1090 if we stopped it
+    if $dump1090_was_running; then
+        sudo systemctl start dump1090-mutability
     fi
 else
     warn "rtl_test not found — rtl-sdr package may not be installed"

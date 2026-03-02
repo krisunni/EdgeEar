@@ -449,112 +449,112 @@ class Transcriber:
 
                                 audio_s = len(chunk) / (SAMPLE_RATE * 2)
 
-                            # --- Mel spectrogram ---
-                            samples = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
-                            samples = pad_or_trim(samples, CHUNK_SAMPLES)
-                            mel = log_mel_spectrogram(samples)
+                                # --- Mel spectrogram ---
+                                samples = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
+                                samples = pad_or_trim(samples, CHUNK_SAMPLES)
+                                mel = log_mel_spectrogram(samples)
 
-                            mel_np = mel.cpu().numpy()
-                            mel_np = np.expand_dims(mel_np, axis=0)
-                            mel_np = np.expand_dims(mel_np, axis=2)
-                            mel_np = np.transpose(mel_np, (0, 2, 3, 1))  # NHWC
-                            input_mel = np.ascontiguousarray(mel_np)
+                                mel_np = mel.cpu().numpy()
+                                mel_np = np.expand_dims(mel_np, axis=0)
+                                mel_np = np.expand_dims(mel_np, axis=2)
+                                mel_np = np.transpose(mel_np, (0, 2, 3, 1))  # NHWC
+                                input_mel = np.ascontiguousarray(mel_np)
 
-                            expected_size = int(np.prod(encoder_model.input().shape)) * 4
-                            if input_mel.nbytes != expected_size:
-                                log.warning("Mel buffer size %d != expected %d, skipping",
-                                            input_mel.nbytes, expected_size)
-                                continue
+                                expected_size = int(np.prod(encoder_model.input().shape)) * 4
+                                if input_mel.nbytes != expected_size:
+                                    log.warning("Mel buffer size %d != expected %d, skipping",
+                                                input_mel.nbytes, expected_size)
+                                    continue
 
-                            try:
-                                # --- Encoder ---
-                                t_enc_start = time.monotonic()
-                                encoder_bindings.input().set_buffer(input_mel)
-                                enc_out_buf = np.zeros(encoder_model.output().shape, dtype=np.float32)
-                                encoder_bindings.output().set_buffer(enc_out_buf)
-                                encoder_configured.run([encoder_bindings], timeout_ms)
-                                encoded_features = encoder_bindings.output().get_buffer()
-                                t_enc_end = time.monotonic()
+                                try:
+                                    # --- Encoder ---
+                                    t_enc_start = time.monotonic()
+                                    encoder_bindings.input().set_buffer(input_mel)
+                                    enc_out_buf = np.zeros(encoder_model.output().shape, dtype=np.float32)
+                                    encoder_bindings.output().set_buffer(enc_out_buf)
+                                    encoder_configured.run([encoder_bindings], timeout_ms)
+                                    encoded_features = encoder_bindings.output().get_buffer()
+                                    t_enc_end = time.monotonic()
 
-                                # --- Decoder (iterative) ---
-                                t_dec_start = time.monotonic()
-                                decoder_input_ids = np.zeros((1, DECODER_SEQUENCE_LENGTH), dtype=np.int64)
-                                decoder_input_ids[0][0] = START_TOKEN_ID
-                                generated_tokens = []
+                                    # --- Decoder (iterative) ---
+                                    t_dec_start = time.monotonic()
+                                    decoder_input_ids = np.zeros((1, DECODER_SEQUENCE_LENGTH), dtype=np.int64)
+                                    decoder_input_ids[0][0] = START_TOKEN_ID
+                                    generated_tokens = []
 
-                                for i in range(DECODER_SEQUENCE_LENGTH - 1):
-                                    tokenized_ids = self._tokenization(decoder_input_ids)
+                                    for i in range(DECODER_SEQUENCE_LENGTH - 1):
+                                        tokenized_ids = self._tokenization(decoder_input_ids)
 
-                                    decoder_bindings.input(f"{decoder_model_name}/input_layer1").set_buffer(encoded_features)
-                                    decoder_bindings.input(f"{decoder_model_name}/input_layer2").set_buffer(tokenized_ids)
+                                        decoder_bindings.input(f"{decoder_model_name}/input_layer1").set_buffer(encoded_features)
+                                        decoder_bindings.input(f"{decoder_model_name}/input_layer2").set_buffer(tokenized_ids)
 
-                                    buffers = [
-                                        np.zeros(decoder_model.output(name).shape, dtype=np.float32)
-                                        for name in sorted_output_names
-                                    ]
-                                    for name, buf in zip(sorted_output_names, buffers):
-                                        decoder_bindings.output(name).set_buffer(buf)
+                                        buffers = [
+                                            np.zeros(decoder_model.output(name).shape, dtype=np.float32)
+                                            for name in sorted_output_names
+                                        ]
+                                        for name, buf in zip(sorted_output_names, buffers):
+                                            decoder_bindings.output(name).set_buffer(buf)
 
-                                    decoder_configured.run([decoder_bindings], timeout_ms)
+                                        decoder_configured.run([decoder_bindings], timeout_ms)
 
-                                    decoder_outputs = np.concatenate(
-                                        [decoder_bindings.output(name).get_buffer() for name in sorted_output_names],
-                                        axis=2,
-                                    )
+                                        decoder_outputs = np.concatenate(
+                                            [decoder_bindings.output(name).get_buffer() for name in sorted_output_names],
+                                            axis=2,
+                                        )
 
-                                    logits = _apply_repetition_penalty(
-                                        decoder_outputs[:, i], generated_tokens
-                                    )
-                                    next_token = int(np.argmax(logits))
-                                    generated_tokens.append(next_token)
-                                    decoder_input_ids[0][i + 1] = next_token
+                                        logits = _apply_repetition_penalty(
+                                            decoder_outputs[:, i], generated_tokens
+                                        )
+                                        next_token = int(np.argmax(logits))
+                                        generated_tokens.append(next_token)
+                                        decoder_input_ids[0][i + 1] = next_token
 
-                                    if next_token == self._tokenizer.eos_token_id:
-                                        break
+                                        if next_token == self._tokenizer.eos_token_id:
+                                            break
 
-                                t_dec_end = time.monotonic()
+                                    t_dec_end = time.monotonic()
 
-                                # --- Stats ---
-                                encoder_ms = (t_enc_end - t_enc_start) * 1000
-                                decoder_ms = (t_dec_end - t_dec_start) * 1000
-                                total_ms = encoder_ms + decoder_ms
-                                n_tokens = len(generated_tokens)
+                                    # --- Stats ---
+                                    encoder_ms = (t_enc_end - t_enc_start) * 1000
+                                    decoder_ms = (t_dec_end - t_dec_start) * 1000
+                                    total_ms = encoder_ms + decoder_ms
+                                    n_tokens = len(generated_tokens)
 
-                                self._stats.update({
-                                    "backend": "hailo",
-                                    "chunks_processed": self._stats["chunks_processed"] + 1,
-                                    "total_tokens": self._stats["total_tokens"] + n_tokens,
-                                    "last_encoder_ms": round(encoder_ms, 1),
-                                    "last_decoder_ms": round(decoder_ms, 1),
-                                    "last_total_ms": round(total_ms, 1),
-                                    "last_tokens": n_tokens,
-                                    "last_tokens_per_sec": round(n_tokens / (decoder_ms / 1000), 1) if decoder_ms > 0 else 0,
-                                    "last_rtf": round((total_ms / 1000) / audio_s, 3) if audio_s > 0 else 0,
-                                    "last_decoder_steps": n_tokens,
-                                    "audio_duration_s": round(audio_s, 1),
-                                })
-                                self.emit_fn("inference_stats", self._stats)
+                                    self._stats.update({
+                                        "backend": "hailo",
+                                        "chunks_processed": self._stats["chunks_processed"] + 1,
+                                        "total_tokens": self._stats["total_tokens"] + n_tokens,
+                                        "last_encoder_ms": round(encoder_ms, 1),
+                                        "last_decoder_ms": round(decoder_ms, 1),
+                                        "last_total_ms": round(total_ms, 1),
+                                        "last_tokens": n_tokens,
+                                        "last_tokens_per_sec": round(n_tokens / (decoder_ms / 1000), 1) if decoder_ms > 0 else 0,
+                                        "last_rtf": round((total_ms / 1000) / audio_s, 3) if audio_s > 0 else 0,
+                                        "last_decoder_steps": n_tokens,
+                                        "audio_duration_s": round(audio_s, 1),
+                                    })
+                                    self.emit_fn("inference_stats", self._stats)
 
-                                text = self._tokenizer.decode(generated_tokens, skip_special_tokens=True)
-                                if text and text.strip():
-                                    preset = self._current_preset or {}
-                                    text_clean = text.strip()
-                                    text_clean, parsed_data = self._post_process(text_clean)
-                                    segment = {
-                                        "timestamp": datetime.now().strftime("%H:%M:%S"),
-                                        "freq": preset.get("freq", ""),
-                                        "label": preset.get("label", ""),
-                                        "text": text_clean,
-                                        "rms": round(compute_rms(chunk), 1),
-                                    }
-                                    self.emit_fn("transcript", segment)
-                                    if parsed_data and self._weather_callback:
-                                        self._weather_callback(parsed_data)
-                                    if self._transcript_callback:
-                                        self._transcript_callback(text_clean)
+                                    text = self._tokenizer.decode(generated_tokens, skip_special_tokens=True)
+                                    if text and text.strip():
+                                        preset = self._current_preset or {}
+                                        text_clean = text.strip()
+                                        text_clean, parsed_data = self._post_process(text_clean)
+                                        segment = {
+                                            "timestamp": datetime.now().strftime("%H:%M:%S"),
+                                            "freq": preset.get("freq", ""),
+                                            "label": preset.get("label", ""),
+                                            "text": text_clean,
+                                            "rms": round(compute_rms(chunk), 1),
+                                        }
+                                        self.emit_fn("transcript", segment)
+                                        if parsed_data and self._weather_callback:
+                                            self._weather_callback(parsed_data)
+                                        if self._transcript_callback:
+                                            self._transcript_callback(text_clean)
 
-                            except Exception as e:
-                                log.error("Hailo inference error: %s", e)
+                                except Exception as e:
+                                    log.error("Hailo inference error: %s", e)
 
         except Exception as e:
             log.error("Hailo device/configure failed: %s", e)
