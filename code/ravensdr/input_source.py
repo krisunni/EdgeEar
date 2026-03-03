@@ -80,6 +80,9 @@ class InputSource:
                 return False
             self._source.connect(stream_url)
         else:
+            # Apply preset squelch before tuning (tune restarts rtl_fm)
+            if "squelch" in preset:
+                self._source.squelch = preset["squelch"]
             self._source.tune(preset["freq"], preset.get("mode", "fm"))
         return True
 

@@ -340,6 +340,12 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ level: parseInt(level) }),
+        }).then(function () {
+            // Squelch change restarts rtl_fm — reconnect audio if it was playing
+            if (audioPlaying) {
+                audioPlayer.src = "/audio-stream?" + Date.now();
+                audioPlayer.play().catch(function () {});
+            }
         });
     });
 
@@ -349,6 +355,11 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ value: value === "auto" ? "auto" : parseInt(value) }),
+        }).then(function () {
+            if (audioPlaying) {
+                audioPlayer.src = "/audio-stream?" + Date.now();
+                audioPlayer.play().catch(function () {});
+            }
         });
     });
 

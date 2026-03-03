@@ -57,18 +57,26 @@ class Tuner:
         self._thread = None
         self._stop_event = threading.Event()
 
+    # Bandwidth per demodulation mode
+    MODE_SAMPLE_RATES = {
+        "am": "200k",       # aviation AM — rtl_fm needs wide capture for AM demod
+        "fm": "200k",       # narrowband FM (public safety, marine, NOAA)
+        "wbfm": "200k",     # wideband FM broadcast
+    }
+
     def tune(self, freq, mode="fm"):
         self.stop()
         self.current_freq = freq
         self.current_mode = mode
         self._stop_event.clear()
 
+        sample_rate = self.MODE_SAMPLE_RATES.get(mode, "200k")
         gain_arg = [] if self.gain == "auto" else ["-g", str(self.gain)]
         cmd = [
             "rtl_fm",
             "-f", freq,
             "-M", mode,
-            "-s", "200k",
+            "-s", sample_rate,
             "-r", "16k",
             "-l", str(self.squelch),
         ] + gain_arg + ["-"]
@@ -140,9 +148,9 @@ class Tuner:
                 except Exception:
                     pass
                 try:
-                    self.audio_queue.put(chunk, timeout=0.5)
+                    self.audio_queue.put_nowait(chunk)
                 except Exception:
-                    pass
+                    pass  # drop audio if nobody is listening
         except (ValueError, OSError):
             # Pipe closed during shutdown — expected
             pass

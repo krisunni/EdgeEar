@@ -66,6 +66,49 @@ def is_signal_present(pcm_bytes):
     return compute_rms(pcm_bytes) > SILENCE_THRESHOLD
 
 
+import re
+
+# Whisper hallucinates these on noise/static — filter them out.
+# Two-tier approach: specific known phrases + structural patterns.
+
+# Tier 1: specific known Whisper hallucination phrases
+_HALLUCINATION_PHRASES = re.compile(
+    r"^\s*("
+    r"thank you|thanks for watching|subscribe|like and subscribe|"
+    r"you|I don'?t know.*|okay|oh|ah|uh|hmm|"
+    r"blank audio|no speech|inaudible|unintelligible"
+    r")\s*\.?\s*$",
+    re.IGNORECASE,
+)
+
+# Tier 2: any text that is ENTIRELY inside brackets/parens — these are
+# Whisper's sound descriptions, never real speech transcriptions.
+# e.g. [Music], (roaring), [Birds], [Scream], [Grooing]
+_BRACKETED_RE = re.compile(r"^\s*[\[\(].+[\]\)]\s*$")
+
+
+def _is_hallucination(text):
+    """Return True if text is a known Whisper hallucination on noise."""
+    t = text.strip()
+    reason = None
+    if len(t) <= 1:
+        reason = "too_short"
+    elif _HALLUCINATION_PHRASES.match(t):
+        reason = "known_phrase"
+    elif _BRACKETED_RE.match(t):
+        reason = "bracketed"
+    elif re.match(r"^(.{1,4}[-–])\1{2,}$", t, re.IGNORECASE):
+        reason = "repetitive"
+    else:
+        words = t.split()
+        if len(words) <= 2 and len(t) < 15:
+            reason = "short_fragment"
+    if reason:
+        log.debug("Hallucination filtered [%s]: %r", reason, t)
+        return True
+    return False
+
+
 def _apply_repetition_penalty(logits, generated_tokens, penalty=REPETITION_PENALTY,
                               last_window=REPETITION_WINDOW):
     """Discourage repeated tokens by dividing their logits by the penalty."""
@@ -379,7 +422,7 @@ class Transcriber:
                 })
                 self.emit_fn("inference_stats", self._stats)
 
-                if text and text.strip():
+                if text and text.strip() and not _is_hallucination(text):
                     preset = self._current_preset or {}
                     text_clean = text.strip()
                     text_clean, parsed_data = self._post_process(text_clean)
@@ -544,7 +587,7 @@ class Transcriber:
                                     self.emit_fn("inference_stats", self._stats)
 
                                     text = self._tokenizer.decode(generated_tokens, skip_special_tokens=True)
-                                    if text and text.strip():
+                                    if text and text.strip() and not _is_hallucination(text):
                                         preset = self._current_preset or {}
                                         text_clean = text.strip()
                                         text_clean, parsed_data = self._post_process(text_clean)
