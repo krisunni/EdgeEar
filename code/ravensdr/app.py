@@ -270,7 +270,16 @@ def api_tune():
 
     # WEFAX tab: display-only, scheduler handles recording automatically
     if preset.get("category") == "wefax":
+        input_source.stop()
         input_source.current_preset = preset
+        # Stop ADS-B dedicated mode if active
+        if adsb_receiver and adsb_receiver.is_running and not ADSB_DUAL_DONGLE:
+            adsb_receiver.stop()
+            if adsb_scheduler:
+                adsb_scheduler.start()
+        # Stop AIS if active
+        if ais_receiver.is_running:
+            ais_receiver.stop()
         _broadcast_status()
         return jsonify({"status": "tuned", "preset": preset})
 
