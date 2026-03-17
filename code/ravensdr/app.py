@@ -268,6 +268,12 @@ def api_tune():
     if mode == "WEBSTREAM" and not preset.get("stream_url"):
         return jsonify({"error": "No web stream available for this preset (SDR only)"}), 400
 
+    # WEFAX tab: display-only, scheduler handles recording automatically
+    if preset.get("category") == "wefax":
+        input_source.current_preset = preset
+        _broadcast_status()
+        return jsonify({"status": "tuned", "preset": preset})
+
     is_adsb = preset.get("mode") == "adsb"
     is_ais = preset.get("mode") == "ais"
 

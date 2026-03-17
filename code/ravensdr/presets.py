@@ -131,6 +131,25 @@ PRESETS = [
         "squelch": 20,
         "note": "US Coast Guard liaison — SDR only",
     },
+    # ── WEFAX (HF Weather Charts) ──
+    {
+        "id": "wefax-nmc",
+        "label": "NMC Point Reyes",
+        "freq": "8682.0k",
+        "mode": "usb",
+        "category": "wefax",
+        "squelch": 0,
+        "note": "WEFAX weather charts — HF direct sampling, auto-scheduled",
+    },
+    {
+        "id": "wefax-noj",
+        "label": "NOJ Kodiak",
+        "freq": "4298.0k",
+        "mode": "usb",
+        "category": "wefax",
+        "squelch": 0,
+        "note": "WEFAX weather charts — HF direct sampling, auto-scheduled",
+    },
     # ── Public Safety ──
     {
         "id": "kcso-dispatch",
@@ -162,10 +181,11 @@ PRESETS = [
     },
 ]
 
-CATEGORIES = ["weather", "aviation", "marine", "public_safety", "broadcast"]
+CATEGORIES = ["weather", "wefax", "aviation", "marine", "public_safety", "broadcast"]
 
 CATEGORY_LABELS = {
     "weather": "Weather",
+    "wefax": "WEFAX",
     "aviation": "Aviation",
     "marine": "Marine",
     "public_safety": "Public Safety",

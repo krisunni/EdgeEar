@@ -192,9 +192,10 @@
                 currentPresetId = presetId;
                 renderPresetButtons(activeCategory);
 
-                // Manage weather & satellite panels based on preset category
+                // Manage panels based on preset category
                 var preset = data.preset || {};
                 var isWeather = preset.category === "weather";
+                var isWefax = preset.category === "wefax";
                 if (weatherPanel) {
                     if (isWeather) {
                         weatherPanel.show();
@@ -210,7 +211,7 @@
                     }
                 }
                 if (wefaxPanel) {
-                    if (isWeather) {
+                    if (isWefax) {
                         wefaxPanel.show();
                     } else {
                         wefaxPanel.hide();
@@ -222,6 +223,13 @@
                 var isAdsbOnly = preset.mode === "adsb";
                 var isAisOnly = preset.mode === "ais";
                 var isMapMode = isAdsbOnly || isAisOnly;
+
+                // WEFAX tab: show chart panel, hide transcript (no audio)
+                if (isWefax) {
+                    hideMapPanel();
+                    document.getElementById("transcript-section").style.display = "none";
+                    return;
+                }
 
                 if (isAisOnly) {
                     showMapPanel(true);

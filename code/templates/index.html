@@ -205,7 +205,20 @@
         <div id="wefax-panel" class="hidden">
             <div class="panel-header">
                 <label>WEFAX Weather Charts</label>
-                <span class="wefax-freq-info">HF Direct Sampling (Q-branch)</span>
+                <span class="wefax-freq-info">HF Direct Sampling (Q-branch) &mdash; Auto-scheduled</span>
+            </div>
+
+            <div class="wefax-station-info">
+                <div class="wefax-station-row">
+                    <span class="wefax-station-badge">NMC</span>
+                    <span class="wefax-station-name">Point Reyes, CA</span>
+                    <span class="wefax-station-freqs">4346 / 8682 / 12786 kHz</span>
+                </div>
+                <div class="wefax-station-row">
+                    <span class="wefax-station-badge">NOJ</span>
+                    <span class="wefax-station-name">Kodiak, AK</span>
+                    <span class="wefax-station-freqs">2054 / 4298 / 8459 kHz</span>
+                </div>
             </div>
 
             <div class="wefax-countdown-wrap">
@@ -219,16 +232,21 @@
                 <span class="wefax-rec-text">Receiving WEFAX broadcast...</span>
             </div>
 
+            <div class="wefax-section-label">Upcoming Broadcasts</div>
             <div id="wefax-schedule-list"></div>
 
+            <div class="wefax-section-label">Decoded Charts</div>
             <div class="wefax-filters">
                 <button class="wefax-filter-btn" data-chart-type="surface_analysis">Surface</button>
                 <button class="wefax-filter-btn" data-chart-type="24hr_forecast">24hr</button>
                 <button class="wefax-filter-btn" data-chart-type="48hr_forecast">48hr</button>
+                <button class="wefax-filter-btn" data-chart-type="96hr_forecast">96hr</button>
                 <button class="wefax-filter-btn" data-chart-type="wave_chart">Wave</button>
             </div>
 
             <div id="wefax-latest-chart"></div>
+
+            <div class="wefax-section-label">Chart History</div>
             <div id="wefax-chart-history"></div>
         </div>
 
