@@ -169,6 +169,16 @@ PRESETS = [
         "squelch": 25,
         "note": "Seattle Fire dispatch — SDR only (may be encrypted)",
     },
+    # ── Science ──
+    {
+        "id": "meteor-scatter",
+        "label": "Meteor Scatter",
+        "freq": "143.050M",
+        "mode": "fm",
+        "category": "science",
+        "squelch": 0,
+        "note": "Passive meteor detection — forward scatter on 143.050 MHz carrier",
+    },
     # ── Broadcast ──
     {
         "id": "kexp-fm",
@@ -181,13 +191,14 @@ PRESETS = [
     },
 ]
 
-CATEGORIES = ["weather", "wefax", "aviation", "marine", "public_safety", "broadcast"]
+CATEGORIES = ["weather", "wefax", "aviation", "marine", "science", "public_safety", "broadcast"]
 
 CATEGORY_LABELS = {
     "weather": "Weather",
     "wefax": "WEFAX",
     "aviation": "Aviation",
     "marine": "Marine",
+    "science": "Science",
     "public_safety": "Public Safety",
     "broadcast": "Broadcast",
 }

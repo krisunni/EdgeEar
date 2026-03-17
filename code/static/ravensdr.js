@@ -76,10 +76,7 @@
             modeBadge.textContent += " (No Whisper)";
         }
         adsbEnabled = !!data.adsb_enabled;
-        // Show meteor panel if meteor detection is enabled
-        if (data.meteor_enabled && meteorPanel) {
-            meteorPanel.show();
-        }
+        // Meteor panel shown via Science tab, not auto-show
     });
 
     socket.on("status", function (data) {
@@ -196,6 +193,7 @@
                 var preset = data.preset || {};
                 var isWeather = preset.category === "weather";
                 var isWefax = preset.category === "wefax";
+                var isScience = preset.category === "science";
                 if (weatherPanel) {
                     if (isWeather) {
                         weatherPanel.show();
@@ -217,6 +215,13 @@
                         wefaxPanel.hide();
                     }
                 }
+                if (meteorPanel) {
+                    if (isScience) {
+                        meteorPanel.show();
+                    } else {
+                        meteorPanel.hide();
+                    }
+                }
 
                 // Manage map panel based on preset + config
                 var isAviation = preset.category === "aviation";
@@ -226,6 +231,13 @@
 
                 // WEFAX tab: show chart panel, hide transcript (no audio)
                 if (isWefax) {
+                    hideMapPanel();
+                    document.getElementById("transcript-section").style.display = "none";
+                    return;
+                }
+
+                // Science tab: show meteor panel, hide transcript (no audio)
+                if (isScience) {
                     hideMapPanel();
                     document.getElementById("transcript-section").style.display = "none";
                     return;
@@ -393,6 +405,7 @@
                 if (weatherPanel) weatherPanel.hide();
                 if (satellitePanel) satellitePanel.hide();
                 if (wefaxPanel) wefaxPanel.hide();
+                if (meteorPanel) meteorPanel.hide();
                 document.getElementById("transcript-section").style.display = "";
             });
     });

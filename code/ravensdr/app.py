@@ -182,29 +182,30 @@ def _on_wefax_broadcast_start(broadcast_info):
 wefax_scheduler = WefaxScheduler(emit_fn=socketio.emit, on_broadcast_start=_on_wefax_broadcast_start)
 
 # ── Meteor Scatter Detection ──
-meteor_detector = None
 meteor_analyzer = MeteorAnalyzer()
 
-if METEOR_ENABLED:
-    device_idx = 1 if METEOR_DUAL_DONGLE else 0
-    meteor_detector = MeteorDetector(
-        emit_fn=socketio.emit,
-        frequency_hz=METEOR_FREQUENCY,
-        device_index=device_idx,
-    )
-    meteor_detector.load_events_from_log()
+# Always create detector (Science tab can start it on demand)
+_meteor_device_idx = 1 if METEOR_DUAL_DONGLE else 0
+meteor_detector = MeteorDetector(
+    emit_fn=socketio.emit,
+    frequency_hz=METEOR_FREQUENCY,
+    device_index=_meteor_device_idx,
+)
+meteor_detector.load_events_from_log()
 
-    # Wire analyzer to tag shower info on each detection
-    _original_meteor_emit = socketio.emit
+# Wire analyzer to tag shower info on each detection
+_original_meteor_emit = socketio.emit
 
-    def _meteor_emit_wrapper(event, data, **kw):
-        if event == "meteor_detection" and isinstance(data, dict):
-            meteor_analyzer.tag_event_shower(data)
-        _original_meteor_emit(event, data, **kw)
 
-    meteor_detector.emit_fn = _meteor_emit_wrapper
-    log.info("Meteor detector configured (device %d, %s mode)",
-             device_idx, "dual-dongle" if METEOR_DUAL_DONGLE else "single-dongle")
+def _meteor_emit_wrapper(event, data, **kw):
+    if event == "meteor_detection" and isinstance(data, dict):
+        meteor_analyzer.tag_event_shower(data)
+    _original_meteor_emit(event, data, **kw)
+
+
+meteor_detector.emit_fn = _meteor_emit_wrapper
+log.info("Meteor detector configured (device %d, %s)",
+         _meteor_device_idx, "auto-start" if METEOR_ENABLED else "on-demand via Science tab")
 
 
 def _input_error_callback(event, data):
@@ -267,6 +268,26 @@ def api_tune():
     # Check if web stream mode and no stream_url
     if mode == "WEBSTREAM" and not preset.get("stream_url"):
         return jsonify({"error": "No web stream available for this preset (SDR only)"}), 400
+
+    # Science tab: display-only, start meteor detector if not running
+    if preset.get("category") == "science":
+        input_source.stop()
+        input_source.current_preset = preset
+        if ais_receiver.is_running:
+            ais_receiver.stop()
+        if adsb_receiver and adsb_receiver.is_running and not ADSB_DUAL_DONGLE:
+            adsb_receiver.stop()
+            if adsb_scheduler:
+                adsb_scheduler.start()
+        # Start meteor detector on the main dongle if not already running
+        if meteor_detector and not meteor_detector.is_running:
+            meteor_detector.start()
+        _broadcast_status()
+        return jsonify({"status": "tuned", "preset": preset})
+
+    # If switching away from Science, stop meteor detector on main dongle
+    if meteor_detector and meteor_detector.is_running and not METEOR_DUAL_DONGLE:
+        meteor_detector.stop()
 
     # WEFAX tab: display-only, scheduler handles recording automatically
     if preset.get("category") == "wefax":
@@ -481,8 +502,6 @@ def api_wefax_history():
 
 @app.route("/api/meteor/events")
 def api_meteor_events():
-    if not meteor_detector:
-        return jsonify([])
     limit = request.args.get("limit", 50, type=int)
     offset = request.args.get("offset", 0, type=int)
     shower = request.args.get("shower")
@@ -494,10 +513,6 @@ def api_meteor_events():
 
 @app.route("/api/meteor/stats")
 def api_meteor_stats():
-    if not meteor_detector:
-        return jsonify({"total": 0, "peak_hourly_rate": 0, "underdense_count": 0,
-                        "overdense_count": 0, "underdense_ratio": 0, "session_hours": 0,
-                        "hourly": [], "shower": None})
     events = meteor_detector.get_events(limit=10000)
     stats = meteor_analyzer.get_session_stats(events)
     hourly = meteor_analyzer.get_hourly_stats(events, hours=24)
@@ -579,9 +594,9 @@ def _get_status():
         "apt_recording": apt_decoder.is_recording,
         "wefax_mode": input_source.wefax_mode,
         "wefax_recording": wefax_receiver.is_recording,
-        "meteor_enabled": METEOR_ENABLED,
+        "meteor_enabled": True,
         "meteor_mode": input_source.meteor_mode,
-        "meteor_running": meteor_detector.is_running if meteor_detector else False,
+        "meteor_running": meteor_detector.is_running,
     }
 
 
@@ -707,8 +722,7 @@ def _do_shutdown(signum=None):
     apt_decoder.stop()
     wefax_scheduler.stop()
     wefax_receiver.stop()
-    if meteor_detector:
-        meteor_detector.stop()
+    meteor_detector.stop()
 
     if signum == signal.SIGTERM:
         socketio.stop()
@@ -748,8 +762,7 @@ if __name__ == "__main__":
     socketio.start_background_task(ais_broadcast_loop)
     apt_scheduler.start()
     wefax_scheduler.start()
-    if METEOR_ENABLED and meteor_detector:
-        if METEOR_DUAL_DONGLE:
-            meteor_detector.start()
-        socketio.start_background_task(meteor_stats_loop)
+    socketio.start_background_task(meteor_stats_loop)
+    if METEOR_ENABLED and METEOR_DUAL_DONGLE:
+        meteor_detector.start()
     socketio.run(app, host="0.0.0.0", port=5000, debug=False)
