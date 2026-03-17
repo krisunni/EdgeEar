@@ -20,9 +20,9 @@ class TestRtlFmCommand:
 
     def test_direct_sampling_flag(self):
         cmd = WefaxReceiver.build_rtl_fm_cmd(8680100)
-        assert "-D" in cmd
-        idx = cmd.index("-D")
-        assert cmd[idx + 1] == "2"  # Q-branch
+        assert "-E" in cmd
+        idx = cmd.index("-E")
+        assert cmd[idx + 1] == "direct2"  # Q-branch (Blog fork syntax)
 
     def test_usb_demodulation(self):
         cmd = WefaxReceiver.build_rtl_fm_cmd(8680100)

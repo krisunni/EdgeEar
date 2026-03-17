@@ -193,6 +193,18 @@ class WefaxReceiver:
         log.info("WEFAX recording complete: %s (%.1f MB)",
                  wav_file, file_size / 1e6)
 
+        # Sanity check — if WAV is tiny, rtl_fm likely failed to start
+        if file_size < 10000:
+            log.error("WEFAX WAV too small (%.0f bytes) — rtl_fm likely failed. "
+                      "Check rtl_fm stderr logs above.", file_size)
+            self._recording = False
+            self._current_broadcast = None
+            try:
+                os.remove(wav_file)
+            except OSError:
+                pass
+            return
+
         # Analyze signal level from the recorded WAV
         self._analyze_wav_signal(wav_file, station, freq_khz)
 
@@ -309,10 +321,15 @@ class WefaxReceiver:
 
     @staticmethod
     def build_rtl_fm_cmd(tuned_hz):
-        """Build rtl_fm command for WEFAX HF direct sampling."""
+        """Build rtl_fm command for WEFAX HF direct sampling.
+
+        Blog fork of rtl_fm uses -E direct2 for Q-branch direct sampling
+        (not -D 2 which is the stock rtl-sdr flag). USB demodulation is
+        supported via -M usb.
+        """
         return [
             "rtl_fm",
-            "-D", "2",           # Q-branch direct sampling (correct for V4 R828D)
+            "-E", "direct2",     # Q-branch direct sampling (Blog fork syntax)
             "-f", str(tuned_hz),
             "-M", "usb",         # Upper sideband demodulation
             "-s", SAMPLE_RATE,

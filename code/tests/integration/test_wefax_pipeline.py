@@ -47,7 +47,7 @@ class TestWefaxPipelineMocked:
         cmd = WefaxReceiver.build_rtl_fm_cmd(tuned_hz)
 
         assert cmd[0] == "rtl_fm"
-        assert "-D" in cmd and cmd[cmd.index("-D") + 1] == "2"
+        assert "-E" in cmd and cmd[cmd.index("-E") + 1] == "direct2"
         assert "-M" in cmd and cmd[cmd.index("-M") + 1] == "usb"
         assert "-f" in cmd and cmd[cmd.index("-f") + 1] == str(tuned_hz)
 
