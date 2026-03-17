@@ -12,6 +12,8 @@
     let mapVisible = false;
     let weatherPanel = null;
     let satellitePanel = null;
+    let wefaxPanel = null;
+    let meteorPanel = null;
 
     // ── DOM refs ──
     const modeBadge = document.getElementById("mode-badge");
@@ -52,6 +54,12 @@
         if (window.SatellitePanel && !satellitePanel) {
             satellitePanel = new window.SatellitePanel(socket);
         }
+        if (window.WefaxPanel && !wefaxPanel) {
+            wefaxPanel = new window.WefaxPanel(socket);
+        }
+        if (window.MeteorPanel && !meteorPanel) {
+            meteorPanel = new window.MeteorPanel(socket);
+        }
     });
 
     socket.on("disconnect", function () {
@@ -68,6 +76,10 @@
             modeBadge.textContent += " (No Whisper)";
         }
         adsbEnabled = !!data.adsb_enabled;
+        // Show meteor panel if meteor detection is enabled
+        if (data.meteor_enabled && meteorPanel) {
+            meteorPanel.show();
+        }
     });
 
     socket.on("status", function (data) {
@@ -197,10 +209,25 @@
                         satellitePanel.hide();
                     }
                 }
+                if (wefaxPanel) {
+                    if (isWeather) {
+                        wefaxPanel.show();
+                    } else {
+                        wefaxPanel.hide();
+                    }
+                }
 
-                // Manage ADS-B map panel based on preset + config
+                // Manage map panel based on preset + config
                 var isAviation = preset.category === "aviation";
                 var isAdsbOnly = preset.mode === "adsb";
+                var isAisOnly = preset.mode === "ais";
+                var isMapMode = isAdsbOnly || isAisOnly;
+
+                if (isAisOnly) {
+                    showMapPanel(true);
+                    document.getElementById("transcript-section").style.display = "none";
+                    return;
+                }
 
                 if (!adsbEnabled || !isAviation) {
                     hideMapPanel();
@@ -357,6 +384,7 @@
                 hideMapPanel();
                 if (weatherPanel) weatherPanel.hide();
                 if (satellitePanel) satellitePanel.hide();
+                if (wefaxPanel) wefaxPanel.hide();
                 document.getElementById("transcript-section").style.display = "";
             });
     });
@@ -527,6 +555,12 @@
     socket.on("adsb_update", function (flights) {
         if (mapVisible && window.ravenMap) {
             window.ravenMap.updateAircraft(flights);
+        }
+    });
+
+    socket.on("ais_update", function (vessels) {
+        if (mapVisible && window.ravenMap) {
+            window.ravenMap.updateVessels(vessels);
         }
     });
 

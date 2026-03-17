@@ -1,7 +1,7 @@
 {
   "name": "ravenSDR",
   "description": "Real-time RF Signal Transcription Pipeline — RTL-SDR → Edge AI Inference (Hailo-8L NPU) → Live Web Interface",
-  "version": "0.5.1",
+  "version": "0.7.0",
   "status": "running",
   "license": "AGPL-3.0",
   "stack": {
@@ -20,7 +20,9 @@
     "weatherParser": "NOAA NWS broadcast regex parser",
     "passPredictor": "ephem (PyEphem orbital mechanics)",
     "aptDecoder": "noaa-apt CLI (APT image decoder)",
-    "hallucinationFilter": "Two-tier Whisper noise filter (phrases + structural patterns)"
+    "hallucinationFilter": "Two-tier Whisper noise filter (phrases + structural patterns)",
+    "wefaxDecoder": "fldigi (WEFAX HF decode via Xvfb headless)",
+    "meteorDetector": "Forward scatter power monitor (numpy threshold detector)"
   },
   "targetHardware": {
     "sbc": "Raspberry Pi 5",
@@ -43,7 +45,9 @@
     "implementation-plans/phase-10-adsb-aviation-correlation.md",
     "implementation-plans/phase-11-inference-stats.md",
     "implementation-plans/phase-12-noaa-weather-radio.md",
-    "implementation-plans/phase-13-noaa-apt-satellite-imaging.md"
+    "implementation-plans/phase-13-noaa-apt-satellite-imaging.md",
+    "implementation-plans/phase-14-weatherfax-wefax.md",
+    "implementation-plans/phase-15-meteor-scatter-detection.md"
   ],
   "phases": {
     "1": {"name": "System Dependencies & Environment Setup", "status": "done"},
@@ -58,8 +62,10 @@
     "10": {"name": "ADS-B Aviation Correlation & Voice-Activity Segmentation", "status": "done"},
     "11": {"name": "Inference Stats Dashboard", "status": "done"},
     "12": {"name": "NOAA Weather Radio Integration", "status": "done"},
-    "13": {"name": "NOAA APT Satellite Imaging", "status": "done"}
+    "13": {"name": "NOAA APT Satellite Imaging", "status": "done"},
+    "14": {"name": "WEFAX Weather Fax HF Reception", "status": "done"},
+    "15": {"name": "Passive Meteor Scatter Detection", "status": "done"}
   },
-  "lastUpdated": "2026-03-03",
-  "notes": "Phases 1-13 implemented. v0.5.1: Audio pipeline fixes (preset squelch, non-blocking audio queue, audio reconnect on squelch/gain change), Whisper hallucination filter, per-mode sample rate config, default to NOAA Seattle on startup, cleanup script for orphaned processes."
+  "lastUpdated": "2026-03-16",
+  "notes": "Phases 1-15 implemented. v0.7.0: WEFAX HF weather fax + passive meteor scatter detection via forward scatter carrier monitoring."
 }

@@ -25,11 +25,11 @@
     <main class="container">
         <header class="hero">
             <h1>System Architecture</h1>
-            <p class="hero-sub">RF Signal Transcription Pipeline</p>
+            <p class="hero-sub">Passive RF Intelligence Collection Node</p>
         </header>
 
         <section class="section">
-            <h2>Signal Flow</h2>
+            <h2>Signal Flow — Voice Transcription Pipeline</h2>
             <div class="signal-flow"><span class="highlight">RF Input</span>                    <span class="highlight">Processing</span>                 <span class="highlight">AI Inference</span>              <span class="highlight">Output</span>
 
 ┌──────────────┐         ┌──────────────┐         ┌──────────────┐         ┌──────────────┐
@@ -43,11 +43,12 @@
 │  (ffmpeg)    │  HTTP   │              │         │  NPU         │         │  Feed        │
 └──────────────┘         └──────────────┘         └──────────────┘         └──────────────┘
 
-                         <span class="highlight">InputSource</span>                    <span class="highlight">Transcriber</span>               <span class="highlight">Flask App</span>
+                         <span class="highlight">InputSource</span>                    <span class="highlight">Transcriber</span>               <span class="highlight">Flask App</span></div>
+        </section>
 
-<span class="highlight">ADS-B Tracking (enabled by default)</span>
-
-<span class="highlight">Default: Single-dongle time-share</span>          <span class="highlight">Optional: Dual-dongle</span>
+        <section class="section">
+            <h2>Signal Flow — ADS-B Tracking</h2>
+            <div class="signal-flow"><span class="highlight">Default: Single-dongle time-share</span>          <span class="highlight">Optional: Dual-dongle</span>
 
 ┌──────────────┐    60s listen     30s scan    ┌──────────────┐    ┌──────────────┐
 │  RTL-SDR     │───→ rtl_fm ─────→ pause ─────→│  dump1090    │───→│  ADS-B       │
@@ -65,6 +66,83 @@
         </section>
 
         <section class="section">
+            <h2>Signal Flow — NOAA APT Satellite Imaging</h2>
+            <div class="signal-flow"><span class="highlight">Orbital Prediction</span>                <span class="highlight">Recording</span>                      <span class="highlight">Decoding</span>
+
+┌──────────────┐         ┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+│  Celestrak   │  TLE    │  AptScheduler│  trigger │  rtl_fm      │  WAV    │  noaa-apt    │
+│  TLE Feed    │────────→│  PyEphem     │────────→│  137 MHz FM  │────────→│  CLI decode  │
+│              │         │  pass predict│         │  60k/11025Hz │  sox    │              │
+└──────────────┘         └──────────────┘         └──────────────┘         └──────────────┘
+                                                                                   │
+                         ┌──────────────┐                                          │ PNG
+                         │  InputSource │  enter_apt_mode()                        ▼
+                         │  pauses VHF  │  exclusive SDR access        ┌──────────────┐
+                         │  scanning    │  for 15-minute pass          │  Satellite   │
+                         └──────────────┘                              │  Panel UI    │
+                                                                       └──────────────┘</div>
+        </section>
+
+        <section class="section">
+            <h2>Signal Flow — WEFAX Weather Fax (HF)</h2>
+            <div class="signal-flow"><span class="highlight">Schedule</span>                     <span class="highlight">HF Reception</span>                   <span class="highlight">Decoding</span>
+
+┌──────────────┐         ┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+│  NMC / NOJ   │  UTC    │  WefaxSched  │  trigger │  rtl_fm      │  WAV    │  fldigi      │
+│  broadcast   │────────→│  time-of-day │────────→│  -D 2 USB    │────────→│  --wefax-only│
+│  timetable   │         │  freq select │         │  HF direct   │  sox    │  via Xvfb    │
+└──────────────┘         └──────────────┘         │  sampling    │         │              │
+                                                   │  -1.9kHz ofs │         └──────────────┘
+                         ┌──────────────┐          └──────────────┘                │
+                         │  InputSource │  enter_wefax_mode()                      │ PNG
+                         │  pauses VHF  │  APT pass has priority       ┌──────────────┐
+                         │  scanning    │                              │  WEFAX       │
+                         └──────────────┘                              │  Panel UI    │
+                                                                       └──────────────┘
+  <span class="highlight">Frequencies:</span> NMC 4346/8682/12786/17151 kHz · NOJ 2054/4298/8459/12412 kHz
+  <span class="highlight">Day:</span> 8–12 MHz    <span class="highlight">Night:</span> 2–4 MHz    <span class="highlight">IOC 576</span> · 1809px width · greyscale</div>
+        </section>
+
+        <section class="section">
+            <h2>Signal Flow — Meteor Scatter Detection</h2>
+            <div class="signal-flow"><span class="highlight">Carrier Monitor</span>               <span class="highlight">Detection</span>                      <span class="highlight">Analysis</span>
+
+┌──────────────┐         ┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+│  Distant FM  │ forward │  rtl_fm      │  PCM    │  Meteor      │  event  │  Meteor      │
+│  carrier     │ scatter │  143.050 MHz │────────→│  Detector    │────────→│  Analyzer    │
+│  (below      │─ ─ ─ ─→│  -g 40       │         │              │         │              │
+│  horizon)    │  meteor │  11025 Hz    │         │  30s rolling │         │  shower      │
+└──────────────┘  trail  └──────────────┘         │  baseline    │         │  calendar    │
+                  80-120km                         │  threshold   │         │  7 showers   │
+                  altitude                         │  dB detect   │         │  rate stats  │
+                                                   │              │         │              │
+┌──────────────┐  Ionized plasma                   │  duration:   │         │  Perseids    │
+│  Meteoroid   │  column reflects                  │  50ms – 30s  │         │  Geminids    │
+│  11–72 km/s  │  radio waves                      │              │         │  Leonids ... │
+└──────────────┘                                   │  U: &lt;0.5s    │         └──────────────┘
+                                                   │  O: &gt;0.5s    │                │
+                         ┌──────────────┐          └──────────────┘                ▼
+                         │  RTL-SDR #2  │  METEOR_DUAL_DONGLE=true     ┌──────────────┐
+                         │  (device 1)  │  24/7 independent monitor    │  Meteor      │
+                         │  or device 0 │  lowest SDR priority         │  Panel UI    │
+                         └──────────────┘                              │  rate chart  │
+                                                                       └──────────────┘</div>
+        </section>
+
+        <section class="section">
+            <h2>SDR Mode Priority</h2>
+            <div class="signal-flow">  <span class="highlight">Priority</span>    <span class="highlight">Mode</span>                        <span class="highlight">Preempts</span>
+
+  1 (highest)  APT Satellite Pass          Everything — orbital window is fixed
+  2            WEFAX Broadcast             Voice, Meteor — scheduled HF window
+  3            Voice Monitoring            Meteor — user-selected frequency
+  4 (lowest)   Meteor Detection            Nothing — runs in idle gaps
+
+  Single-dongle: modes are mutually exclusive, higher priority preempts lower.
+  Dual-dongle: meteor detection runs on device 1 independently.</div>
+        </section>
+
+        <section class="section">
             <h2>Target Hardware</h2>
             <div class="arch-grid">
                 <div class="arch-card">
@@ -77,28 +155,29 @@
                 </div>
                 <div class="arch-card">
                     <h3>RTL-SDR Blog V4</h3>
-                    <p>R828D tuner + RTL2832U with 1PPM TCXO. Receives 24MHz-1.7GHz via rtl_fm demodulation.</p>
+                    <p>R828D tuner + RTL2832U with 1PPM TCXO. VHF/UHF 24MHz–1.7GHz via rtl_fm. HF 500kHz–24MHz via Q-branch direct sampling (-D 2).</p>
                 </div>
             </div>
         </section>
 
         <section class="section">
-            <h2>ADS-B Configuration</h2>
+            <h2>Environment Configuration</h2>
             <div class="table-wrap">
                 <table>
                     <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
                     <tbody>
+                        <tr><td colspan="3" style="font-weight:600;color:#58a6ff;border-bottom:1px solid #30363d;">ADS-B Tracking</td></tr>
                         <tr><td><code>ADSB_ENABLED</code></td><td><code>true</code></td><td>Enable ADS-B receiver (single-dongle time-share by default)</td></tr>
                         <tr><td><code>ADSB_DUAL_DONGLE</code></td><td><code>false</code></td><td>Use dedicated RTL-SDR on device 1 — no time-sharing needed</td></tr>
                         <tr><td><code>ADSB_SCAN_INTERVAL</code></td><td><code>60</code></td><td>Seconds of rtl_fm listening between ADS-B scans (single-dongle only)</td></tr>
                         <tr><td><code>ADSB_SCAN_DURATION</code></td><td><code>30</code></td><td>Seconds per ADS-B scan window (single-dongle only)</td></tr>
+                        <tr><td colspan="3" style="font-weight:600;color:#58a6ff;border-bottom:1px solid #30363d;">Meteor Scatter Detection</td></tr>
+                        <tr><td><code>METEOR_ENABLED</code></td><td><code>false</code></td><td>Enable passive meteor scatter detection</td></tr>
+                        <tr><td><code>METEOR_DUAL_DONGLE</code></td><td><code>false</code></td><td>Use dedicated RTL-SDR on device 1 for 24/7 meteor monitoring</td></tr>
+                        <tr><td><code>METEOR_FREQUENCY</code></td><td><code>143050000</code></td><td>Carrier frequency in Hz (143.050 MHz = amateur meteor scatter)</td></tr>
                     </tbody>
                 </table>
             </div>
-            <p style="margin-top: 0.5rem; color: #888; font-size: 0.85rem;">
-                Single-dongle mode pauses rtl_fm every 60s for a 30s ADS-B scan, then resumes VHF reception.
-                Dual-dongle mode runs both concurrently with no gaps.
-            </p>
         </section>
 
         <section class="section">
@@ -131,6 +210,17 @@
                         <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/weather/current</code></td><td>Latest parsed NOAA weather conditions</td></tr>
                         <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/satellite/passes</code></td><td>Next 24h predicted satellite passes</td></tr>
                         <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/satellite/latest-image</code></td><td>Most recent decoded APT image + metadata</td></tr>
+                        <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/ais/vessels</code></td><td>Current AIS vessel list</td></tr>
+                        <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/wefax/latest</code></td><td>Most recent WEFAX chart (?chart_type= filter)</td></tr>
+                        <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/wefax/schedule</code></td><td>Next 6h of scheduled WEFAX broadcasts</td></tr>
+                        <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/wefax/history</code></td><td>Last 10 decoded WEFAX charts</td></tr>
+                        <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/meteor/events</code></td><td>Paginated meteor detections (?shower=&amp;trail_type=)</td></tr>
+                        <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/meteor/stats</code></td><td>Hourly rate, session stats, active shower</td></tr>
+                        <tr><td><span class="badge badge-done">GET</span></td><td><code>/api/meteor/showers</code></td><td>Full annual meteor shower calendar</td></tr>
+                        <tr><td><span class="badge badge-changed">POST</span></td><td><code>/api/sample_rate</code></td><td>Set capture sample rate</td></tr>
+                        <tr><td><span class="badge badge-changed">POST</span></td><td><code>/api/deemp</code></td><td>Set de-emphasis (auto/on/off)</td></tr>
+                        <tr><td><span class="badge badge-changed">POST</span></td><td><code>/api/ppm</code></td><td>Set PPM crystal correction</td></tr>
+                        <tr><td><span class="badge badge-changed">POST</span></td><td><code>/api/direct_sampling</code></td><td>Set direct sampling mode (off/I/Q)</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -154,6 +244,11 @@
                         <tr><td><code>priority_alert</code></td><td>Server &rarr; Client</td><td>Weather warning/watch/advisory alert</td></tr>
                         <tr><td><code>satellite_pass_upcoming</code></td><td>Server &rarr; Client</td><td>Satellite pass starting in 10 minutes</td></tr>
                         <tr><td><code>apt_image_ready</code></td><td>Server &rarr; Client</td><td>Decoded APT satellite image available</td></tr>
+                        <tr><td><code>ais_update</code></td><td>Server &rarr; Client</td><td>AIS vessel list (every 2s)</td></tr>
+                        <tr><td><code>wefax_broadcast_upcoming</code></td><td>Server &rarr; Client</td><td>WEFAX broadcast starting in 5 minutes</td></tr>
+                        <tr><td><code>wefax_image_ready</code></td><td>Server &rarr; Client</td><td>Decoded WEFAX weather chart available</td></tr>
+                        <tr><td><code>meteor_detection</code></td><td>Server &rarr; Client</td><td>Real-time meteor scatter burst detected</td></tr>
+                        <tr><td><code>meteor_stats_update</code></td><td>Server &rarr; Client</td><td>Meteor hourly rate &amp; session stats (every 60s)</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -185,7 +280,9 @@
                     weatherParser: 'Weather Parser',
                     passPredictor: 'Pass Predictor',
                     aptDecoder: 'APT Decoder',
-                    hallucinationFilter: 'Hallucination Filter'
+                    hallucinationFilter: 'Hallucination Filter',
+                    wefaxDecoder: 'WEFAX Decoder',
+                    meteorDetector: 'Meteor Detector'
                 };
                 Object.entries(sys.stack).forEach(([key, val]) => {
                     const tr = document.createElement('tr');

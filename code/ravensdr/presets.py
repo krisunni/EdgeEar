@@ -105,6 +105,15 @@ PRESETS = [
     },
     # ── Marine ──
     {
+        "id": "ais-marine",
+        "label": "AIS Marine Traffic",
+        "freq": "162.000M",
+        "mode": "ais",
+        "category": "marine",
+        "squelch": 0,
+        "note": "AIS vessel tracking (rtl_ais) — map-only mode",
+    },
+    {
         "id": "marine-ch16",
         "label": "Marine CH 16",
         "freq": "156.800M",

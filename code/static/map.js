@@ -6,6 +6,7 @@
     var SEATAC = [47.4502, -122.3088];
     var map = null;
     var markers = {};  // hex -> { marker, label }
+    var vesselMarkers = {};  // mmsi -> { marker, label }
     var flightCount = document.getElementById("flight-count");
 
     // Airplane SVG pointing up (north), filled with color
@@ -24,6 +25,25 @@
                   makeAircraftSvg(color) + '</div>',
             iconSize: [28, 28],
             iconAnchor: [14, 14],
+        });
+    }
+
+    // Boat SVG pointing up (north), filled with color
+    function makeBoatSvg(color) {
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="24" height="24">' +
+            '<path fill="' + color + '" stroke="#000" stroke-width="1" d="' +
+            'M18 4 L10 28 L18 24 L26 28 Z' +
+            '"/></svg>';
+    }
+
+    function vesselIcon(course) {
+        var color = "#00bcd4";
+        return L.divIcon({
+            className: "vessel-icon",
+            html: '<div style="transform: rotate(' + (course || 0) + 'deg); transform-origin: center;">' +
+                  makeBoatSvg(color) + '</div>',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
         });
     }
 
@@ -113,6 +133,76 @@
             }
         },
 
+        updateVessels: function (vessels) {
+            if (!map) return;
+
+            var seen = {};
+            var count = 0;
+
+            vessels.forEach(function (v) {
+                if (!v.lat || !v.lon) return;
+                var id = v.mmsi;
+                if (!id) return;
+                seen[id] = true;
+                count++;
+
+                var name = (v.name || "").trim() || v.mmsi;
+                var spd = v.speed !== undefined ? v.speed.toFixed(1) + " kt" : "";
+                var labelText = name;
+                if (spd) labelText += " " + spd;
+
+                if (vesselMarkers[id]) {
+                    vesselMarkers[id].marker.setLatLng([v.lat, v.lon]);
+                    vesselMarkers[id].marker.setIcon(vesselIcon(v.course));
+                    vesselMarkers[id].label.setLatLng([v.lat, v.lon]);
+                    vesselMarkers[id].label.setTooltipContent(labelText);
+                } else {
+                    var m = L.marker([v.lat, v.lon], {
+                        icon: vesselIcon(v.course),
+                    }).addTo(map);
+
+                    var lbl = L.marker([v.lat, v.lon], {
+                        icon: L.divIcon({ className: "vessel-label-anchor", iconSize: [0, 0] }),
+                    }).addTo(map);
+                    lbl.bindTooltip(labelText, {
+                        permanent: true,
+                        direction: "right",
+                        offset: [14, 0],
+                        className: "vessel-label",
+                    });
+
+                    m.on("click", function () {
+                        var crs = v.course !== undefined ? Math.round(v.course) + "\u00b0" : "n/a";
+                        var hdg = v.heading !== undefined ? Math.round(v.heading) + "\u00b0" : "";
+                        var popup = "<b>" + name + "</b><br>" +
+                            "MMSI: " + v.mmsi + "<br>" +
+                            (v.ship_type_label ? "Type: " + v.ship_type_label + "<br>" : "") +
+                            (spd ? "Speed: " + spd + "<br>" : "") +
+                            "Course: " + crs +
+                            (hdg ? "<br>Heading: " + hdg : "") +
+                            (v.destination ? "<br>Dest: " + v.destination : "");
+                        m.bindPopup(popup).openPopup();
+                    });
+
+                    vesselMarkers[id] = { marker: m, label: lbl };
+                }
+            });
+
+            // Remove stale vessel markers
+            Object.keys(vesselMarkers).forEach(function (id) {
+                if (!seen[id]) {
+                    map.removeLayer(vesselMarkers[id].marker);
+                    map.removeLayer(vesselMarkers[id].label);
+                    delete vesselMarkers[id];
+                }
+            });
+
+            // Update flight count area with vessel count if no aircraft
+            if (flightCount && Object.keys(markers).length === 0) {
+                flightCount.textContent = count + " vessels";
+            }
+        },
+
         highlightAircraft: function (matches) {
             if (!map) return;
             matches.forEach(function (m) {
@@ -159,6 +249,7 @@
                 map.remove();
                 map = null;
                 markers = {};
+                vesselMarkers = {};
             }
         },
     };

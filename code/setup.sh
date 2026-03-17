@@ -103,6 +103,24 @@ else
     fi
 fi
 
+# ── Step 6a: rtl_ais for AIS vessel tracking (optional) ──
+echo ""
+echo "── Step 6a: rtl_ais (AIS) ──"
+if command -v rtl_ais &>/dev/null; then
+    pass "rtl_ais already installed"
+else
+    echo "Building rtl_ais from source..."
+    RTLAIS_BUILD_DIR="/tmp/rtl-ais-build"
+    rm -rf "$RTLAIS_BUILD_DIR"
+    git clone https://github.com/dgiardini/rtl-ais.git "$RTLAIS_BUILD_DIR"
+    cd "$RTLAIS_BUILD_DIR"
+    make -j"$(nproc)"
+    sudo cp rtl_ais /usr/local/bin/
+    cd "$OLDPWD"
+    rm -rf "$RTLAIS_BUILD_DIR"
+    pass "rtl_ais built and installed"
+fi
+
 # ── Step 6b: APT Satellite Imaging dependencies ──
 echo ""
 echo "── Step 6b: APT Satellite Imaging ──"
@@ -133,6 +151,45 @@ else
         fi
     fi
 fi
+
+# ── Step 6c: WEFAX Weather Fax dependencies ──
+echo ""
+echo "── Step 6c: WEFAX Weather Fax ──"
+
+# Install fldigi for WEFAX decoding
+if command -v fldigi &>/dev/null; then
+    pass "fldigi already installed"
+else
+    if sudo apt-get install -y -qq fldigi 2>/dev/null; then
+        pass "fldigi installed"
+    else
+        warn "fldigi not in apt — WEFAX decoding will be unavailable"
+        warn "To install manually: sudo apt install fldigi"
+    fi
+fi
+
+# Install Xvfb for headless fldigi operation
+if command -v Xvfb &>/dev/null || command -v xvfb-run &>/dev/null; then
+    pass "Xvfb already installed"
+else
+    if sudo apt-get install -y -qq xvfb 2>/dev/null; then
+        pass "Xvfb installed (headless display for fldigi)"
+    else
+        warn "Xvfb not installed — fldigi may not work headlessly"
+    fi
+fi
+
+# Create WEFAX directories
+mkdir -p /tmp/ravensdr/wefax
+mkdir -p "$(dirname "$0")/static/images/wefax"
+pass "WEFAX directories created"
+
+echo ""
+echo "  WEFAX notes:"
+echo "  - RTL-SDR Blog V4 supports HF via -D 2 (Q-branch direct sampling)"
+echo "  - Long wire antenna (5-10m) strongly recommended for HF reception"
+echo "  - fldigi requires Xvfb on headless Raspberry Pi"
+echo ""
 
 # ── Step 7: RTL-SDR Blog V4 driver ──
 # MUST run after dump1090 install — dump1090-mutability pulls in stock librtlsdr0

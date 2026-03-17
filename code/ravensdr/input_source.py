@@ -56,6 +56,10 @@ class InputSource:
         self._error_callback = None
         self._apt_mode = False
         self._apt_saved_preset = None
+        self._wefax_mode = False
+        self._wefax_saved_preset = None
+        self._meteor_mode = False
+        self._meteor_saved_preset = None
 
         if mode == "SDR":
             self._source = Tuner(self.pcm_queue, self.audio_queue)
@@ -71,6 +75,13 @@ class InputSource:
         if self._apt_mode:
             log.warning("Cannot tune — SDR is in APT satellite recording mode")
             return False
+        if self._wefax_mode:
+            log.warning("Cannot tune — SDR is in WEFAX recording mode")
+            return False
+        if self._meteor_mode:
+            # Meteor detection is lowest priority — exit it to allow tuning
+            self.exit_meteor_mode()
+            log.info("Exited meteor mode to allow tuning")
         self.current_preset = preset
         if self.mode == "WEBSTREAM":
             stream_url = preset.get("stream_url")
@@ -204,6 +215,14 @@ class InputSource:
         return 0
 
     @property
+    def meteor_mode(self):
+        return self._meteor_mode
+
+    @property
+    def wefax_mode(self):
+        return self._wefax_mode
+
+    @property
     def apt_mode(self):
         return self._apt_mode
 
@@ -251,3 +270,88 @@ class InputSource:
             self._error_callback("apt_mode_exited", {
                 "message": "SDR satellite recording complete — normal scanning resumed",
             })
+
+    def enter_wefax_mode(self, frequency_khz):
+        """Pause normal scanning and dedicate SDR to WEFAX HF direct sampling."""
+        if self.mode != "SDR":
+            log.warning("WEFAX mode only supported in SDR mode")
+            return False
+        if self._apt_mode:
+            log.warning("Cannot enter WEFAX mode — APT satellite pass has priority")
+            return False
+        if self._wefax_mode:
+            log.warning("Already in WEFAX mode")
+            return False
+
+        self._wefax_saved_preset = self.current_preset
+        was_running = self.is_running
+        if was_running:
+            self._source.stop()
+
+        self._wefax_mode = True
+        log.info("Entered WEFAX mode — SDR dedicated to %.1f kHz HF direct sampling", frequency_khz)
+
+        if self._error_callback:
+            self._error_callback("wefax_mode_entered", {
+                "message": f"SDR in WEFAX recording mode ({frequency_khz:.1f} kHz)",
+            })
+        return True
+
+    def exit_wefax_mode(self):
+        """Exit WEFAX recording mode and resume normal scanning."""
+        if not self._wefax_mode:
+            return
+
+        self._wefax_mode = False
+        log.info("Exited WEFAX mode")
+
+        # Resume previous preset if one was active
+        if self._wefax_saved_preset:
+            preset = self._wefax_saved_preset
+            self._wefax_saved_preset = None
+            self.tune(preset)
+            log.info("Resumed scanning: %s", preset.get("label", ""))
+        else:
+            self._wefax_saved_preset = None
+
+        if self._error_callback:
+            self._error_callback("wefax_mode_exited", {
+                "message": "WEFAX recording complete — normal scanning resumed",
+            })
+
+    def enter_meteor_mode(self, frequency_hz):
+        """Enter meteor detection mode — lowest priority, preempted by everything."""
+        if self.mode != "SDR":
+            log.warning("Meteor mode only supported in SDR mode")
+            return False
+        if self._apt_mode or self._wefax_mode:
+            log.warning("Cannot enter meteor mode — higher priority mode active")
+            return False
+        if self._meteor_mode:
+            log.warning("Already in meteor mode")
+            return False
+
+        self._meteor_saved_preset = self.current_preset
+        was_running = self.is_running
+        if was_running:
+            self._source.stop()
+
+        self._meteor_mode = True
+        log.info("Entered meteor mode — monitoring %.3f MHz", frequency_hz / 1e6)
+        return True
+
+    def exit_meteor_mode(self):
+        """Exit meteor detection mode and resume normal scanning."""
+        if not self._meteor_mode:
+            return
+
+        self._meteor_mode = False
+        log.info("Exited meteor mode")
+
+        if self._meteor_saved_preset:
+            preset = self._meteor_saved_preset
+            self._meteor_saved_preset = None
+            self.tune(preset)
+            log.info("Resumed scanning: %s", preset.get("label", ""))
+        else:
+            self._meteor_saved_preset = None

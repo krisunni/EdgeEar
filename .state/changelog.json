@@ -1,6 +1,27 @@
 {
   "versions": [
     {
+      "version": "0.7.0",
+      "date": "2026-03-16",
+      "status": "running",
+      "changes": [
+        {"type": "added", "description": "Phase 14 — WEFAX Weather Fax: HF direct sampling receiver (-D 2 Q-branch), fldigi WEFAX decode via Xvfb, NMC/NOJ broadcast scheduler with time-of-day frequency selection, chart history and filter UI", "date": "2026-03-16"},
+        {"type": "added", "description": "wefax_scheduler.py — hardcoded NMC Point Reyes and NOJ Kodiak schedules, 5-min advance Socket.IO notification, priority tagging for surface analysis and 24hr forecast charts", "date": "2026-03-16"},
+        {"type": "added", "description": "wefax_receiver.py — rtl_fm USB demod with -1.9 kHz offset, sox WAV pipeline, fldigi headless decode, structured PNG filename output, image history API", "date": "2026-03-16"},
+        {"type": "added", "description": "WEFAX panel UI (wefax.js + wefax.css) — broadcast schedule with station/frequency badges, countdown, active reception indicator, decoded chart display, chart type filter buttons, thumbnail history", "date": "2026-03-16"},
+        {"type": "added", "description": "InputSource WEFAX mode — enter/exit with preset restore, APT satellite pass priority enforcement", "date": "2026-03-16"},
+        {"type": "added", "description": "GET /api/wefax/latest, /api/wefax/schedule, /api/wefax/history endpoints and wefax_broadcast_upcoming, wefax_image_ready Socket.IO events", "date": "2026-03-16"},
+        {"type": "added", "description": "Phase 15 — Passive Meteor Scatter Detection: forward scatter carrier power monitor, threshold-based burst detection, underdense/overdense trail classification, shower calendar correlation", "date": "2026-03-16"},
+        {"type": "added", "description": "meteor_detector.py — IQ power monitoring via rtl_fm, rolling 30s baseline, configurable dB threshold, duration filtering (50ms–30s), trail type classification, JSON event log", "date": "2026-03-16"},
+        {"type": "added", "description": "meteor_analyzer.py — 7-shower annual calendar (Quadrantids through Geminids), active shower tagging, hourly/daily rate stats, session statistics with peak rate and U/O ratio", "date": "2026-03-16"},
+        {"type": "added", "description": "Meteor panel UI (meteor.js + meteor.css) — real-time event feed with trail badges, 24hr rate bar chart on canvas, shower context, stats grid, target frequency display", "date": "2026-03-16"},
+        {"type": "added", "description": "Dual dongle meteor mode (METEOR_DUAL_DONGLE=true) — device 1 runs 24/7 independent of main pipeline. Single dongle mode at background priority", "date": "2026-03-16"},
+        {"type": "added", "description": "GET /api/meteor/events (paginated, filterable), /api/meteor/stats, /api/meteor/showers endpoints and meteor_detection, meteor_stats_update Socket.IO events", "date": "2026-03-16"},
+        {"type": "changed", "description": "setup.sh — added fldigi and Xvfb install steps for WEFAX headless decode, WEFAX directory creation, HF antenna guidance", "date": "2026-03-16"},
+        {"type": "added", "description": "Unit tests: 49 WEFAX tests (scheduler frequency selection, schedule parsing, receiver commands) + 47 meteor tests (threshold, classification, shower calendar, rate stats)", "date": "2026-03-16"}
+      ]
+    },
+    {
       "version": "0.5.0",
       "date": "2026-03-02",
       "status": "running",

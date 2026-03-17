@@ -19,10 +19,15 @@ from ravensdr.adsb_receiver import (
     AdsbReceiver, AdsbScanScheduler,
     ADSB_ENABLED, ADSB_DUAL_DONGLE,
 )
+from ravensdr.ais_receiver import AisReceiver
 from ravensdr.adsb_correlator import extract_callsigns, match_flights
 from ravensdr.noaa_parser import detect_priority_alert
 from ravensdr.apt_scheduler import AptScheduler
 from ravensdr.apt_decoder import AptDecoder
+from ravensdr.wefax_scheduler import WefaxScheduler
+from ravensdr.wefax_receiver import WefaxReceiver
+from ravensdr.meteor_detector import MeteorDetector, METEOR_ENABLED, METEOR_DUAL_DONGLE, METEOR_FREQUENCY
+from ravensdr.meteor_analyzer import MeteorAnalyzer
 
 logging.basicConfig(
     level=logging.INFO,
@@ -79,6 +84,9 @@ if ADSB_ENABLED:
                 })
 
     transcriber.set_transcript_callback(_on_transcript)
+
+# ── AIS Receiver ──
+ais_receiver = AisReceiver(device_index=0)
 
 # ── Weather state ──
 _latest_weather = None
@@ -144,6 +152,60 @@ def _on_apt_pass_start(pass_info):
 
 apt_scheduler = AptScheduler(emit_fn=socketio.emit, on_pass_start=_on_apt_pass_start)
 
+# ── WEFAX Weather Fax ──
+wefax_receiver = WefaxReceiver(emit_fn=socketio.emit)
+
+
+def _on_wefax_broadcast_start(broadcast_info):
+    """Called by scheduler when a WEFAX broadcast begins — start recording."""
+    frequency_khz = broadcast_info.get("frequency_khz", 0)
+
+    if input_source.enter_wefax_mode(frequency_khz):
+        wefax_receiver.record_broadcast(broadcast_info)
+        socketio.emit("status", _get_status())
+
+        # Schedule exit from WEFAX mode after recording duration
+        def _exit_wefax():
+            import eventlet as _ev
+            duration_min = broadcast_info.get("duration_minutes", 10)
+            _ev.sleep(duration_min * 60 + 30)
+            if input_source.wefax_mode:
+                input_source.exit_wefax_mode()
+                socketio.emit("status", _get_status())
+
+        socketio.start_background_task(_exit_wefax)
+    else:
+        log.warning("Could not enter WEFAX mode for %s %s",
+                     broadcast_info.get("station"), broadcast_info.get("chart_type"))
+
+
+wefax_scheduler = WefaxScheduler(emit_fn=socketio.emit, on_broadcast_start=_on_wefax_broadcast_start)
+
+# ── Meteor Scatter Detection ──
+meteor_detector = None
+meteor_analyzer = MeteorAnalyzer()
+
+if METEOR_ENABLED:
+    device_idx = 1 if METEOR_DUAL_DONGLE else 0
+    meteor_detector = MeteorDetector(
+        emit_fn=socketio.emit,
+        frequency_hz=METEOR_FREQUENCY,
+        device_index=device_idx,
+    )
+    meteor_detector.load_events_from_log()
+
+    # Wire analyzer to tag shower info on each detection
+    _original_meteor_emit = socketio.emit
+
+    def _meteor_emit_wrapper(event, data, **kw):
+        if event == "meteor_detection" and isinstance(data, dict):
+            meteor_analyzer.tag_event_shower(data)
+        _original_meteor_emit(event, data, **kw)
+
+    meteor_detector.emit_fn = _meteor_emit_wrapper
+    log.info("Meteor detector configured (device %d, %s mode)",
+             device_idx, "dual-dongle" if METEOR_DUAL_DONGLE else "single-dongle")
+
 
 def _input_error_callback(event, data):
     """Handle input source error/recovery events."""
@@ -207,6 +269,28 @@ def api_tune():
         return jsonify({"error": "No web stream available for this preset (SDR only)"}), 400
 
     is_adsb = preset.get("mode") == "adsb"
+    is_ais = preset.get("mode") == "ais"
+
+    # AIS dedicated mode: stop audio pipeline, run rtl_ais continuously
+    if is_ais:
+        input_source.stop()
+        input_source.current_preset = preset
+        # Stop ADS-B if running in dedicated mode
+        if adsb_receiver and adsb_receiver.is_running and not ADSB_DUAL_DONGLE:
+            adsb_receiver.stop()
+            if adsb_scheduler:
+                adsb_scheduler.start()
+        ais_receiver.start()
+        if not ais_receiver.is_running:
+            log.error("Failed to start rtl_ais")
+            return jsonify({"error": "Failed to start rtl_ais"}), 500
+        log.info("AIS dedicated mode — rtl_ais running continuously")
+        _broadcast_status()
+        return jsonify({"status": "tuned", "preset": preset})
+
+    # Switching away from AIS: stop rtl_ais
+    if ais_receiver.is_running:
+        ais_receiver.stop()
 
     if is_adsb and adsb_receiver:
         # ADS-B dedicated mode: stop audio pipeline, run dump1090 continuously
@@ -241,6 +325,9 @@ def api_tune():
 @app.route("/api/stop", methods=["POST"])
 def api_stop():
     input_source.stop()
+    # Stop dedicated AIS mode if active
+    if ais_receiver.is_running:
+        ais_receiver.stop()
     # Stop dedicated ADS-B mode if active
     if adsb_receiver and adsb_receiver.is_running and not ADSB_DUAL_DONGLE:
         adsb_receiver.stop()
@@ -329,6 +416,11 @@ def api_adsb_flights():
     return jsonify([])
 
 
+@app.route("/api/ais/vessels")
+def api_ais_vessels():
+    return jsonify(ais_receiver.get_vessels())
+
+
 @app.route("/api/weather/current")
 def api_weather_current():
     if _latest_weather is None:
@@ -348,6 +440,66 @@ def api_satellite_latest_image():
     if image is None:
         return jsonify({"error": "No decoded satellite images yet"}), 404
     return jsonify(image)
+
+
+@app.route("/api/wefax/latest")
+def api_wefax_latest():
+    chart_type = request.args.get("chart_type")
+    image = wefax_receiver.get_latest_image(chart_type=chart_type)
+    if image is None:
+        return jsonify({"error": "No decoded WEFAX charts yet"}), 404
+    return jsonify(image)
+
+
+@app.route("/api/wefax/schedule")
+def api_wefax_schedule():
+    broadcasts = wefax_scheduler.get_upcoming_broadcasts(hours=6)
+    return jsonify(broadcasts)
+
+
+@app.route("/api/wefax/history")
+def api_wefax_history():
+    chart_type = request.args.get("chart_type")
+    history = wefax_receiver.get_image_history(count=10, chart_type=chart_type)
+    return jsonify(history)
+
+
+@app.route("/api/meteor/events")
+def api_meteor_events():
+    if not meteor_detector:
+        return jsonify([])
+    limit = request.args.get("limit", 50, type=int)
+    offset = request.args.get("offset", 0, type=int)
+    shower = request.args.get("shower")
+    trail_type = request.args.get("trail_type")
+    events = meteor_detector.get_events(limit=limit, offset=offset,
+                                         shower=shower, trail_type=trail_type)
+    return jsonify(events)
+
+
+@app.route("/api/meteor/stats")
+def api_meteor_stats():
+    if not meteor_detector:
+        return jsonify({"total": 0, "peak_hourly_rate": 0, "underdense_count": 0,
+                        "overdense_count": 0, "underdense_ratio": 0, "session_hours": 0,
+                        "hourly": [], "shower": None})
+    events = meteor_detector.get_events(limit=10000)
+    stats = meteor_analyzer.get_session_stats(events)
+    hourly = meteor_analyzer.get_hourly_stats(events, hours=24)
+    current_shower = meteor_analyzer.get_current_shower()
+    next_shower = meteor_analyzer.get_next_shower()
+    stats["hourly"] = hourly
+    stats["shower"] = current_shower["name"] if current_shower else None
+    stats["next_shower"] = next_shower
+    stats["baseline_dbm"] = round(meteor_detector.baseline_power_db, 1)
+    stats["frequency_hz"] = meteor_detector.frequency_hz
+    stats["meteor_enabled"] = True
+    return jsonify(stats)
+
+
+@app.route("/api/meteor/showers")
+def api_meteor_showers():
+    return jsonify(meteor_analyzer.get_showers())
 
 
 @app.route("/api/status")
@@ -407,8 +559,14 @@ def _get_status():
         "adsb_enabled": ADSB_ENABLED,
         "adsb_scanning": adsb_scheduler.is_scanning if adsb_scheduler else False,
         "adsb_dedicated": adsb_receiver.is_running if adsb_receiver else False,
+        "ais_dedicated": ais_receiver.is_running,
         "apt_mode": input_source.apt_mode,
         "apt_recording": apt_decoder.is_recording,
+        "wefax_mode": input_source.wefax_mode,
+        "wefax_recording": wefax_receiver.is_recording,
+        "meteor_enabled": METEOR_ENABLED,
+        "meteor_mode": input_source.meteor_mode,
+        "meteor_running": meteor_detector.is_running if meteor_detector else False,
     }
 
 
@@ -433,6 +591,32 @@ def adsb_broadcast_loop():
             flights = adsb_receiver.get_flights()
             if flights:
                 socketio.emit("adsb_update", flights)
+
+
+def ais_broadcast_loop():
+    """Push AIS vessel updates to clients every 2s."""
+    while not _signal_stop.is_set():
+        eventlet.sleep(2)
+        if ais_receiver.is_running:
+            vessels = ais_receiver.get_vessels()
+            if vessels:
+                socketio.emit("ais_update", vessels)
+
+
+def meteor_stats_loop():
+    """Push meteor stats update every 60s."""
+    while not _signal_stop.is_set():
+        eventlet.sleep(60)
+        if meteor_detector and meteor_detector.is_running:
+            events = meteor_detector.get_events(limit=10000)
+            stats = meteor_analyzer.get_session_stats(events)
+            hourly = meteor_analyzer.get_hourly_stats(events, hours=24)
+            current_shower = meteor_analyzer.get_current_shower()
+            stats["hourly"] = hourly
+            stats["shower"] = current_shower["name"] if current_shower else None
+            stats["baseline_dbm"] = round(meteor_detector.baseline_power_db, 1)
+            stats["frequency_hz"] = meteor_detector.frequency_hz
+            socketio.emit("meteor_stats_update", stats)
 
 
 def sdr_health_loop():
@@ -503,8 +687,13 @@ def _do_shutdown(signum=None):
         adsb_receiver.stop()
     if adsb_scheduler:
         adsb_scheduler.stop()
+    ais_receiver.stop()
     apt_scheduler.stop()
     apt_decoder.stop()
+    wefax_scheduler.stop()
+    wefax_receiver.stop()
+    if meteor_detector:
+        meteor_detector.stop()
 
     if signum == signal.SIGTERM:
         socketio.stop()
@@ -541,5 +730,11 @@ if __name__ == "__main__":
         socketio.start_background_task(adsb_broadcast_loop)
         if adsb_scheduler:
             adsb_scheduler.start()
+    socketio.start_background_task(ais_broadcast_loop)
     apt_scheduler.start()
+    wefax_scheduler.start()
+    if METEOR_ENABLED and meteor_detector:
+        if METEOR_DUAL_DONGLE:
+            meteor_detector.start()
+        socketio.start_background_task(meteor_stats_loop)
     socketio.run(app, host="0.0.0.0", port=5000, debug=False)

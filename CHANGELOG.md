@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.7.0] — 2026-03-16
+
+### Added — Phase 15: Passive Meteor Scatter Detection
+
+- **Meteor detector** (`meteor_detector.py`): IQ power monitor with rolling baseline noise floor, configurable threshold (default 10 dB), duration-filtered burst detection (50ms–30s), underdense/overdense trail classification, JSON event logging
+- **Meteor analyzer** (`meteor_analyzer.py`): shower calendar with 7 major showers (Quadrantids through Geminids), active shower correlation on detections, hourly/daily rate statistics, session stats with peak rate and trail type ratio
+- **Shower calendar** (`data/meteor_showers.json`): annual meteor shower data with peak dates, active windows, ZHR, entry speeds, parent bodies, radiant coordinates
+- **Dual dongle support**: `METEOR_DUAL_DONGLE=true` runs meteor detector on device 1 independently of main pipeline, single dongle mode runs at background priority
+- **REST endpoints**: `GET /api/meteor/events` (paginated, filterable by shower/trail type), `GET /api/meteor/stats` (hourly rate, session stats, shower context), `GET /api/meteor/showers` (full calendar)
+- **Socket.IO events**: `meteor_detection` (real-time per-burst), `meteor_stats_update` (60s interval)
+- **Meteor panel UI** (`meteor.js` + `meteor.css`): real-time event feed with trail type badges (U/O), 24-hour rate bar chart on canvas, shower context display, statistics grid, target frequency info
+- **InputSource meteor mode**: enter/exit with automatic preset restore, lowest priority (preempted by APT, WEFAX, voice monitoring)
+- **Unit tests**: 47 tests for detector (threshold, duration filtering, trail classification, power measurement) and analyzer (shower calendar, rate calculation, event tagging)
+- **Integration test**: mocked end-to-end pipeline, priority enforcement, dual dongle isolation
+
+### Config (environment variables)
+
+- `METEOR_ENABLED` — enable meteor scatter detection (default: `false`)
+- `METEOR_DUAL_DONGLE` — use dedicated dongle on device 1 (default: `false`)
+- `METEOR_FREQUENCY` — carrier frequency in Hz (default: `143050000` — amateur meteor scatter)
+
+## [0.6.0] — 2026-03-16
+
+### Added — Phase 14: WEFAX Weather Fax HF Reception
+
+- **WEFAX scheduler** (`wefax_scheduler.py`): hardcoded NMC Point Reyes and NOJ Kodiak broadcast schedules with UTC times, time-of-day frequency selection (lower HF at night, higher during day), 5-minute advance notification, priority tagging for surface analysis and 24hr forecasts
+- **WEFAX receiver** (`wefax_receiver.py`): rtl_fm HF direct sampling (`-D 2` Q-branch for V4 R828D), USB demodulation, 1.9 kHz frequency offset (WEFAX convention), fldigi decode via Xvfb headless, structured filename output (station, frequency, chart type, timestamp)
+- **InputSource WEFAX mode**: enter/exit with automatic preset restore, APT satellite passes take priority over WEFAX windows
+- **REST endpoints**: `GET /api/wefax/latest` (optional chart_type filter), `GET /api/wefax/schedule` (6-hour lookahead), `GET /api/wefax/history` (last 10 charts, filterable)
+- **Socket.IO events**: `wefax_broadcast_upcoming` (5 min advance), `wefax_image_ready` (decode complete)
+- **WEFAX panel UI** (`wefax.js` + `wefax.css`): broadcast schedule with station/frequency badges, countdown timer, active reception indicator, decoded chart display (click to expand), chart history thumbnails, chart type filter buttons
+- **Setup**: fldigi and Xvfb install steps, WEFAX directory creation, HF antenna guidance
+- **Unit tests**: 49 tests for scheduler (frequency selection, schedule parsing, callbacks) and receiver (command construction, frequency offset, filename parsing)
+- **Integration test**: mocked pipeline, SDR mode transitions, APT priority enforcement
+
 ## [0.5.1] — 2026-03-03
 
 ### Fixed — Audio pipeline & transcription quality

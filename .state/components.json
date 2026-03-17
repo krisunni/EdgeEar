@@ -136,6 +136,54 @@
       "plans": ["implementation-plans/phase-13-noaa-apt-satellite-imaging.md"],
       "owner": null,
       "notes": "Added 2026-03-01. code/ravensdr/apt_decoder.py"
+    },
+    {
+      "id": "wefax-scheduler",
+      "name": "WEFAX Broadcast Scheduler",
+      "description": "Parses NMC Point Reyes and NOJ Kodiak broadcast schedules, selects optimal HF frequency based on time of day, triggers recording jobs at scheduled broadcast times with 5-minute advance notification",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "threading"],
+      "dependencies": [],
+      "plans": ["implementation-plans/phase-14-weatherfax-wefax.md"],
+      "owner": null,
+      "notes": "Added 2026-03-16. code/ravensdr/wefax_scheduler.py"
+    },
+    {
+      "id": "wefax-receiver",
+      "name": "WEFAX Receiver & Decoder",
+      "description": "Records HF WEFAX broadcasts using rtl_fm with Q-branch direct sampling (-D 2) and USB demodulation, decodes with fldigi via Xvfb headless. Structured PNG output with station/frequency/chart metadata",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "subprocess", "rtl_fm", "fldigi", "Xvfb", "sox"],
+      "dependencies": ["input-source"],
+      "plans": ["implementation-plans/phase-14-weatherfax-wefax.md"],
+      "owner": null,
+      "notes": "Added 2026-03-16. code/ravensdr/wefax_receiver.py"
+    },
+    {
+      "id": "meteor-detector",
+      "name": "Meteor Scatter Detector",
+      "description": "Forward scatter power monitor using rtl_fm on carrier frequency. Rolling 30s baseline, threshold-based burst detection, duration filtering (50ms-30s), underdense/overdense trail classification. Supports dual dongle mode for 24/7 monitoring",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "numpy", "subprocess", "rtl_fm", "threading"],
+      "dependencies": ["input-source"],
+      "plans": ["implementation-plans/phase-15-meteor-scatter-detection.md"],
+      "owner": null,
+      "notes": "Added 2026-03-16. code/ravensdr/meteor_detector.py"
+    },
+    {
+      "id": "meteor-analyzer",
+      "name": "Meteor Statistics Analyzer",
+      "description": "Shower calendar with 7 major annual showers, active shower correlation on detections, hourly/daily rate calculation, session statistics with peak rate and underdense/overdense ratio",
+      "type": "backend",
+      "status": "done",
+      "technology": ["Python", "JSON"],
+      "dependencies": ["meteor-detector"],
+      "plans": ["implementation-plans/phase-15-meteor-scatter-detection.md"],
+      "owner": null,
+      "notes": "Added 2026-03-16. code/ravensdr/meteor_analyzer.py"
     }
   ]
 }

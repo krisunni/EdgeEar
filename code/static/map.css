@@ -100,6 +100,32 @@
     border-bottom-color: #555;
 }
 
+/* Vessel icon styling */
+.vessel-icon {
+    background: none !important;
+    border: none !important;
+}
+
+.vessel-label-anchor {
+    background: none !important;
+    border: none !important;
+}
+
+/* Vessel name label */
+.vessel-label {
+    background: rgba(0, 0, 0, 0.75) !important;
+    color: #00bcd4 !important;
+    border: 1px solid #00bcd4 !important;
+    font-family: monospace;
+    font-size: 0.7rem;
+    padding: 1px 4px !important;
+    white-space: nowrap;
+}
+
+.vessel-label::before {
+    border-right-color: #00bcd4 !important;
+}
+
 /* Transcript callsign highlight */
 .transcript-entry .callsign-match {
     color: #ff4444;

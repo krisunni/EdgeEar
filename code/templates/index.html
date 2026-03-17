@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="/static/ravensdr.css">
     <link rel="stylesheet" href="/static/map.css">
     <link rel="stylesheet" href="/static/satellite.css">
+    <link rel="stylesheet" href="/static/wefax.css">
+    <link rel="stylesheet" href="/static/meteor.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css" />
 </head>
 <body>
@@ -199,6 +201,78 @@
             <div id="sat-image-history"></div>
         </div>
 
+        <!-- WEFAX Panel -->
+        <div id="wefax-panel" class="hidden">
+            <div class="panel-header">
+                <label>WEFAX Weather Charts</label>
+                <span class="wefax-freq-info">HF Direct Sampling (Q-branch)</span>
+            </div>
+
+            <div class="wefax-countdown-wrap">
+                <span class="wefax-countdown-label">Next broadcast</span>
+                <span id="wefax-countdown">--:--:--</span>
+                <span id="wefax-next-label"></span>
+            </div>
+
+            <div id="wefax-recording-indicator" class="hidden">
+                <span class="wefax-rec-dot"></span>
+                <span class="wefax-rec-text">Receiving WEFAX broadcast...</span>
+            </div>
+
+            <div id="wefax-schedule-list"></div>
+
+            <div class="wefax-filters">
+                <button class="wefax-filter-btn" data-chart-type="surface_analysis">Surface</button>
+                <button class="wefax-filter-btn" data-chart-type="24hr_forecast">24hr</button>
+                <button class="wefax-filter-btn" data-chart-type="48hr_forecast">48hr</button>
+                <button class="wefax-filter-btn" data-chart-type="wave_chart">Wave</button>
+            </div>
+
+            <div id="wefax-latest-chart"></div>
+            <div id="wefax-chart-history"></div>
+        </div>
+
+        <!-- Meteor Scatter Panel -->
+        <div id="meteor-panel" class="hidden">
+            <div class="panel-header">
+                <label>Meteor Scatter</label>
+            </div>
+
+            <div class="meteor-stats-grid">
+                <div class="meteor-stat">
+                    <div class="meteor-stat-value" id="meteor-today-count">0</div>
+                    <div class="meteor-stat-label">Total</div>
+                </div>
+                <div class="meteor-stat">
+                    <div class="meteor-stat-value" id="meteor-peak-rate">0/hr</div>
+                    <div class="meteor-stat-label">Peak Rate</div>
+                </div>
+                <div class="meteor-stat">
+                    <div class="meteor-stat-value" id="meteor-ud-ratio">0% U</div>
+                    <div class="meteor-stat-label">Underdense</div>
+                </div>
+                <div class="meteor-stat">
+                    <div class="meteor-stat-value" id="meteor-session-hrs">0h</div>
+                    <div class="meteor-stat-label">Session</div>
+                </div>
+            </div>
+
+            <div id="meteor-shower-info"></div>
+
+            <div class="meteor-chart-wrap">
+                <div class="meteor-chart-label">Detections / hour (24h)</div>
+                <canvas id="meteor-rate-canvas" width="400" height="80"></canvas>
+            </div>
+
+            <div class="meteor-feed-label">Recent Detections</div>
+            <div id="meteor-event-feed"></div>
+
+            <div class="meteor-target-info">
+                <span>Freq: <span class="meteor-target-value" id="meteor-frequency">--</span></span>
+                <span>Baseline: <span class="meteor-target-value" id="meteor-baseline">--</span></span>
+            </div>
+        </div>
+
         <!-- ADS-B Map Panel -->
         <div id="adsb-panel" class="hidden">
             <div class="panel-header">
@@ -216,6 +290,8 @@
     <script src="/static/map.js"></script>
     <script src="/static/weather.js"></script>
     <script src="/static/satellite.js"></script>
+    <script src="/static/wefax.js"></script>
+    <script src="/static/meteor.js"></script>
     <script src="/static/ravensdr.js"></script>
 </body>
 </html>

@@ -105,7 +105,7 @@
       "id": "adsb-tracking",
       "name": "ADS-B Flight Tracking & Correlation",
       "description": "Real-time ADS-B flight tracking via dump1090 correlated with Whisper aviation transcripts. Callsigns spoken on tower/approach frequencies highlight aircraft on a Leaflet.js map. Supports single-dongle (time-sharing) and dual-dongle modes.",
-      "status": "planned",
+      "status": "done",
       "phase": 10,
       "components": ["adsb-receiver", "adsb-correlator", "map-panel"],
       "priority": "medium",
@@ -115,7 +115,7 @@
       "id": "vad-segmentation",
       "name": "Voice-Activity Audio Segmentation",
       "description": "Silence-based audio chunking replaces fixed 10s splits. Segments end at silence boundaries to avoid cutting words mid-utterance. Configurable RMS threshold, holdoff timer, min/max segment duration.",
-      "status": "planned",
+      "status": "done",
       "phase": 10,
       "components": ["transcriber"],
       "priority": "high",
@@ -150,6 +150,26 @@
       "components": ["transcriber", "flask-app", "frontend"],
       "priority": "low",
       "implementation_plan": "implementation-plans/phase-11-inference-stats.md"
+    },
+    {
+      "id": "wefax-reception",
+      "name": "WEFAX Weather Fax HF Reception",
+      "description": "Receives and decodes WEFAX weather charts from NMC Point Reyes and NOJ Kodiak on HF frequencies using RTL-SDR V4 direct sampling (Q-branch). Scheduled reception based on broadcast timetables, fldigi decode to PNG, chart history with type filtering. Supports surface analysis, forecast, and wave charts.",
+      "status": "done",
+      "phase": 14,
+      "components": ["wefax-scheduler", "wefax-receiver", "input-source", "flask-app", "frontend"],
+      "priority": "medium",
+      "implementation_plan": "implementation-plans/phase-14-weatherfax-wefax.md"
+    },
+    {
+      "id": "meteor-detection",
+      "name": "Passive Meteor Scatter Detection",
+      "description": "Detects meteor scatter events by monitoring signal power on a distant FM carrier. Forward scatter from ionized meteor trails causes brief signal bursts. Classifies underdense (< 0.5s, sub-mm particles) and overdense (> 0.5s, larger meteoroids) trails. Correlates with annual shower calendar (Perseids, Geminids, etc). Supports dual dongle for 24/7 independent monitoring.",
+      "status": "done",
+      "phase": 15,
+      "components": ["meteor-detector", "meteor-analyzer", "input-source", "flask-app", "frontend"],
+      "priority": "low",
+      "implementation_plan": "implementation-plans/phase-15-meteor-scatter-detection.md"
     }
   ]
 }

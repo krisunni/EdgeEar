@@ -7,3 +7,4 @@ torch>=2.0.0
 transformers>=4.36.0
 requests>=2.31.0
 ephem>=4.1.0
+pyais>=2.6.0
