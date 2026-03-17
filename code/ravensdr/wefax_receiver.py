@@ -7,6 +7,8 @@ import os
 import subprocess
 import threading
 
+import numpy as np
+
 log = logging.getLogger(__name__)
 
 RAW_DIR = "/tmp/ravensdr/wefax"
@@ -145,7 +147,7 @@ class WefaxReceiver:
             ]
 
             rtl_proc = subprocess.Popen(
-                rtl_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+                rtl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
             sox_proc = subprocess.Popen(
                 sox_cmd, stdin=rtl_proc.stdout, stdout=subprocess.DEVNULL,
@@ -153,6 +155,12 @@ class WefaxReceiver:
             )
 
             self._process = rtl_proc
+
+            # Log rtl_fm stderr in background (PLL lock, tuner info)
+            stderr_thread = threading.Thread(
+                target=self._log_rtl_stderr, args=(rtl_proc.stderr,), daemon=True
+            )
+            stderr_thread.start()
 
             try:
                 rtl_proc.wait(timeout=duration_sec)
@@ -181,8 +189,12 @@ class WefaxReceiver:
             self._current_broadcast = None
             return
 
+        file_size = os.path.getsize(wav_file)
         log.info("WEFAX recording complete: %s (%.1f MB)",
-                 wav_file, os.path.getsize(wav_file) / 1e6)
+                 wav_file, file_size / 1e6)
+
+        # Analyze signal level from the recorded WAV
+        self._analyze_wav_signal(wav_file, station, freq_khz)
 
         # Decode with fldigi
         decode_ok = self._decode_wefax(wav_file, png_file)
@@ -241,6 +253,59 @@ class WefaxReceiver:
             return False
 
         return True
+
+    @staticmethod
+    def _log_rtl_stderr(stderr):
+        """Log rtl_fm stderr for diagnostics (PLL lock, tuner info)."""
+        try:
+            for line in stderr:
+                msg = line.decode("utf-8", errors="replace").strip()
+                if msg:
+                    log.info("rtl_fm(wefax): %s", msg)
+        except (ValueError, OSError):
+            pass
+
+    @staticmethod
+    def _analyze_wav_signal(wav_file, station, freq_khz):
+        """Analyze the recorded WAV file and log signal quality metrics."""
+        try:
+            # Read raw PCM from the WAV file (skip 44-byte header)
+            with open(wav_file, "rb") as f:
+                header = f.read(44)
+                # Read first 30 seconds for analysis (11025 Hz * 2 bytes * 30s)
+                raw = f.read(11025 * 2 * 30)
+
+            if len(raw) < 1024:
+                log.warning("WEFAX signal: WAV too small for analysis (%d bytes)", len(raw))
+                return
+
+            samples = np.frombuffer(raw[:len(raw) - len(raw) % 2], dtype=np.int16).astype(np.float64)
+            rms = np.sqrt(np.mean(samples ** 2))
+            peak = int(np.max(np.abs(samples)))
+            if rms > 0:
+                rms_db = 20 * np.log10(rms)
+            else:
+                rms_db = -100.0
+
+            # Estimate signal quality
+            if rms > 1000:
+                quality = "STRONG"
+            elif rms > 500:
+                quality = "GOOD"
+            elif rms > 100:
+                quality = "WEAK"
+            else:
+                quality = "NO SIGNAL (noise floor only)"
+
+            log.info("WEFAX signal %s %.1f kHz: RMS=%.0f (%.1f dB) peak=%d — %s",
+                     station, freq_khz, rms, rms_db, peak, quality)
+
+            if rms < 100:
+                log.warning("WEFAX signal too weak — check antenna and frequency. "
+                            "Long wire (5-10m) strongly recommended for HF.")
+
+        except Exception as e:
+            log.warning("WEFAX signal analysis failed: %s", e)
 
     @staticmethod
     def build_rtl_fm_cmd(tuned_hz):
