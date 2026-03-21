@@ -14,6 +14,8 @@
     let satellitePanel = null;
     let wefaxPanel = null;
     let meteorPanel = null;
+    let classifierPanel = null;
+    let seiPanel = null;
 
     // ── DOM refs ──
     const modeBadge = document.getElementById("mode-badge");
@@ -48,6 +50,7 @@
     socket.on("connect", function () {
         connectionBanner.classList.add("hidden");
         fetchPresets();
+        fetchSecondaryConfig();
         if (window.WeatherPanel && !weatherPanel) {
             weatherPanel = new window.WeatherPanel(socket);
         }
@@ -59,6 +62,12 @@
         }
         if (window.MeteorPanel && !meteorPanel) {
             meteorPanel = new window.MeteorPanel(socket);
+        }
+        if (window.ClassifierPanel && !classifierPanel) {
+            classifierPanel = new window.ClassifierPanel(socket);
+        }
+        if (window.SEIPanel && !seiPanel) {
+            seiPanel = new window.SEIPanel(socket);
         }
     });
 
@@ -74,6 +83,11 @@
             modeBadge.textContent += " (CPU)";
         } else if (data.transcriber_backend === "none") {
             modeBadge.textContent += " (No Whisper)";
+        }
+        // Show version in header
+        if (data.version) {
+            var versionEl = document.getElementById("version-badge");
+            if (versionEl) versionEl.textContent = "v" + data.version;
         }
         adsbEnabled = !!data.adsb_enabled;
         // Meteor panel shown via Science tab, not auto-show
@@ -194,6 +208,7 @@
                 var isWeather = preset.category === "weather";
                 var isWefax = preset.category === "wefax";
                 var isScience = preset.category === "science";
+                var isBroadcast = preset.category === "broadcast";
                 if (weatherPanel) {
                     if (isWeather) {
                         weatherPanel.show();
@@ -222,6 +237,10 @@
                         meteorPanel.hide();
                     }
                 }
+                // Refresh classifier panel status on tune
+                if (classifierPanel) {
+                    classifierPanel._fetchStatus();
+                }
 
                 // Manage map panel based on preset + config
                 var isAviation = preset.category === "aviation";
@@ -229,14 +248,27 @@
                 var isAisOnly = preset.mode === "ais";
                 var isMapMode = isAdsbOnly || isAisOnly;
 
-                // WEFAX tab: show chart panel, hide transcript (no audio)
+                // Sections only relevant when actively receiving audio
+                var audioSections = [
+                    "signal-section", "stats-section", "classifier-panel",
+                    "sei-panel", "control-section", "advanced-panel",
+                    "audio-section", "tuned-section",
+                ];
+                var hasAudio = !isWefax && !isScience && !isAdsbOnly && !isAisOnly;
+
+                audioSections.forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) el.style.display = hasAudio ? "" : "none";
+                });
+
+                // WEFAX tab: show chart panel, hide transcript
                 if (isWefax) {
                     hideMapPanel();
                     document.getElementById("transcript-section").style.display = "none";
                     return;
                 }
 
-                // Science tab: show meteor panel, hide transcript (no audio)
+                // Science tab: show meteor panel, hide transcript
                 if (isScience) {
                     hideMapPanel();
                     document.getElementById("transcript-section").style.display = "none";
@@ -606,6 +638,51 @@
             window.ravenMap.hide();
         }
         mapVisible = false;
+    }
+
+    // ── Secondary Dongle Config ──
+
+    var secondarySelect = document.getElementById("secondary-select");
+    var secondaryStatus = document.getElementById("secondary-status");
+
+    function fetchSecondaryConfig() {
+        fetch("/api/config/secondary")
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (secondarySelect) {
+                    secondarySelect.value = data.task || "";
+                }
+                if (secondaryStatus) {
+                    secondaryStatus.className = "secondary-indicator" +
+                        (data.running ? " active" : "");
+                    secondaryStatus.title = data.running ?
+                        (data.task + " running on device " + data.device_index) : "Off";
+                }
+            })
+            .catch(function () {});
+    }
+
+    if (secondarySelect) {
+        secondarySelect.addEventListener("change", function () {
+            var task = secondarySelect.value || null;
+            fetch("/api/config/secondary", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ task: task }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.error) {
+                        addErrorEntry(data.error);
+                        return;
+                    }
+                    if (secondaryStatus) {
+                        secondaryStatus.className = "secondary-indicator" +
+                            (data.running ? " active" : "");
+                    }
+                })
+                .catch(function () {});
+        });
     }
 
     function highlightTranscriptCallsigns(matches) {

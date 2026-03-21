@@ -6,6 +6,7 @@ import logging
 import os
 import subprocess
 import threading
+import time
 
 import numpy as np
 
@@ -29,8 +30,9 @@ OUTPUT_RATE = "11025"
 class WefaxReceiver:
     """Records HF WEFAX broadcasts via rtl_fm direct sampling and decodes with fldigi."""
 
-    def __init__(self, emit_fn=None):
+    def __init__(self, emit_fn=None, device_index=0):
         self.emit_fn = emit_fn or (lambda *a, **kw: None)
+        self.device_index = device_index
         self._recording = False
         self._process = None
         self._thread = None
@@ -155,6 +157,7 @@ class WefaxReceiver:
             )
 
             self._process = rtl_proc
+            log.info("WEFAX rtl_fm started (pid %d): %s", rtl_proc.pid, " ".join(rtl_cmd))
 
             # Log rtl_fm stderr in background (PLL lock, tuner info)
             stderr_thread = threading.Thread(
@@ -162,13 +165,35 @@ class WefaxReceiver:
             )
             stderr_thread.start()
 
+            # Check if rtl_fm died immediately (device busy, not found, etc.)
+            time.sleep(2)
+            if rtl_proc.poll() is not None:
+                log.error("WEFAX rtl_fm died immediately (exit code %d) — "
+                          "device may be busy or direct sampling failed",
+                          rtl_proc.returncode)
+                sox_proc.terminate()
+                self._recording = False
+                self._current_broadcast = None
+                return
+
+            # rtl_fm runs forever — wait for recording duration then kill it
             try:
                 rtl_proc.wait(timeout=duration_sec)
+                log.info("WEFAX rtl_fm exited on its own (exit code %d)", rtl_proc.returncode)
             except subprocess.TimeoutExpired:
                 rtl_proc.terminate()
-                rtl_proc.wait(timeout=5)
+                try:
+                    rtl_proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    rtl_proc.kill()
+                    rtl_proc.wait()
+                log.info("WEFAX rtl_fm stopped after %d sec recording", duration_sec)
 
-            sox_proc.wait(timeout=10)
+            # Wait for sox to finish writing the WAV
+            try:
+                sox_proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                sox_proc.kill()
 
         except FileNotFoundError as e:
             log.error("WEFAX recording failed — command not found: %s", e)
@@ -181,6 +206,15 @@ class WefaxReceiver:
             self._current_broadcast = None
             return
         finally:
+            # Always kill rtl_fm process to prevent orphans holding the USB device
+            if self._process and self._process.poll() is None:
+                self._process.terminate()
+                try:
+                    self._process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self._process.kill()
+                    self._process.wait()
+                log.info("WEFAX rtl_fm process cleaned up in finally block")
             self._process = None
 
         if not os.path.exists(wav_file):
@@ -319,23 +353,25 @@ class WefaxReceiver:
         except Exception as e:
             log.warning("WEFAX signal analysis failed: %s", e)
 
-    @staticmethod
-    def build_rtl_fm_cmd(tuned_hz):
+    def build_rtl_fm_cmd(self, tuned_hz):
         """Build rtl_fm command for WEFAX HF direct sampling.
 
         Blog fork of rtl_fm uses -E direct2 for Q-branch direct sampling
         (not -D 2 which is the stock rtl-sdr flag). USB demodulation is
         supported via -M usb.
         """
-        return [
+        cmd = [
             "rtl_fm",
             "-E", "direct2",     # Q-branch direct sampling (Blog fork syntax)
             "-f", str(tuned_hz),
             "-M", "usb",         # Upper sideband demodulation
             "-s", SAMPLE_RATE,
             "-r", OUTPUT_RATE,
-            "-",
         ]
+        if self.device_index > 0:
+            cmd.extend(["-d", str(self.device_index)])
+        cmd.append("-")
+        return cmd
 
     @staticmethod
     def build_fldigi_cmd(wav_file, png_file):

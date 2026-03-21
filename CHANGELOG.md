@@ -1,5 +1,85 @@
 # Changelog
 
+## [1.0.0] — 2026-03-21
+
+All 17 implementation phases complete. Full end-to-end IQ pipeline integrated.
+
+### Added
+
+- **Persistent config system** (`config.py` + `config.json`): secondary dongle assignment (meteor, ADS-B, or WEFAX) persists across restarts
+- **Secondary dongle UI**: dropdown selector in header with status indicator, backed by `GET/POST /api/config/secondary`
+- **Signal classifier panel** wired into main UI (`index.html`): always-visible when receiving audio
+- **SEI emitter tracking panel** wired into main UI: always-visible when receiving audio
+- **Version badge** in UI header from backend `VERSION` constant
+
+### Changed
+
+- **WEFAX receiver robustness**: 2-second startup health check for rtl_fm, finally-block cleanup prevents orphaned processes holding the USB device
+- **WEFAX receiver multi-dongle**: `build_rtl_fm_cmd` now instance method using `self.device_index`
+- **WEFAX scheduler**: expanded priority chart types (48hr, 96hr, 144hr forecasts, wave charts), ±60s trigger window (was ±10s), dedup set prevents double-triggers
+- **InputSource**: `enter_apt_mode`/`enter_wefax_mode` always stop source to release USB, even if not marked running
+- **Device contention**: meteor detector and ADS-B stopped before WEFAX recording in single-dongle mode
+- **UI sections**: audio-related panels (signal, stats, classifier, SEI, controls) hidden on non-audio tabs
+
+## [0.9.1] — 2026-03-17
+
+### Changed — pyrtlsdr replaces rtl_fm as main audio pipeline
+
+- **Dual-path Tuner** (`tuner.py`): auto-detects pyrtlsdr at startup. When available, all SDR operations use direct IQ capture via `IQCapture`, providing raw IQ for signal classification and spectrogram rendering while still feeding demodulated 16kHz PCM to Whisper and browser audio. Falls back to rtl_fm subprocess if pyrtlsdr is not installed — zero behavior change in fallback mode.
+- **Python DSP pipeline** (`iq_capture.py`): FM demod (conjugate product frequency discriminator), AM demod (envelope detection), WFM demod, squelch gate (RMS thresholding, 0-100 range), de-emphasis filter (75μs single-pole IIR), frequency string parser (`"162.550M"` → Hz integer). Full Tuner-compatible interface (tune, stop, squelch, gain, sample rate, deemp, PPM, direct sampling).
+- **Live IQ pipeline** (`app.py`): `IQSegmenter` processes every IQ chunk for transmission boundary detection, signal classifier runs every 500ms, `spectrogram_row` Socket.IO event emitted every 300ms for waterfall UI
+- **Spectrogram waterfall live** (`classifier.js`): bound `spectrogram_row` event to existing `_renderWaterfall()` — spectrogram panel now renders live data from the SDR
+- **IQ capture sample rate**: reduced from 2.4 MHz to 240 kHz (matches rtl_fm's 200k capture bandwidth, significantly reduces CPU load on Pi 5)
+
+### Added
+
+- `InputSource.set_iq_callback()` — passthrough for wiring raw IQ from Tuner to classifier/segmenter/SEI
+- Environment variables `CLASSIFIER_HEF_PATH`, `CLASSIFIER_CLASSES_PATH`, `SEI_HEF_PATH` for NPU model deployment
+- **NPU model training guide** (`operations/npu-model-training.md`): complete Mac ARM64 workflow for training, ONNX export, HEF compilation, and Pi deployment
+- `setup.sh`: `pip install pyrtlsdr`, signal classifier and SEI data directories
+- **Unit tests**: 34 new tests for DSP functions and IQCapture interface
+
+### Unchanged
+
+- Meteor detector, APT decoder, WEFAX receiver keep their independent rtl_fm instances (different sample rates, pipe to sox/fldigi/noaa-apt)
+- Transcriber still reads 16kHz PCM from pcm_queue
+- Audio router still streams WAV from audio_queue
+- Web Stream mode (ffmpeg) unaffected
+
+## [0.9.0] — 2026-03-17
+
+### Added — Phase 16: Signal Classification via Spectrogram CNN
+
+- **Signal classifier** (`signal_classifier.py`): real-time modulation identification from raw IQ samples using MobileNetV2 CNN on Hailo-8L NPU. Converts IQ to spectrogram images (256-point FFT, Hann window, 50% overlap), normalizes to 224x224 uint8, classifies into 11 target classes: AM, FM, WFM, SSB, P25, DMR, ADS-B, NOAA APT, WEFAX, CW, unknown
+- **IQ capture** (`iq_capture.py`): direct IQ capture via pyrtlsdr bypassing rtl_fm, with FM/AM demodulation from raw IQ and device mutex to prevent concurrent access
+- **CPU fallback classifier**: heuristic modulation classification using spectral features (bandwidth ratio, peak-to-average ratio) when Hailo NPU unavailable
+- **Confidence thresholding**: only emit classification if top class > 0.7 confidence, flag uncertain when top two classes within 10%
+- **Self-supervised labeling**: when classification matches preset `expected_modulation`, IQ chunk saved to `ml/signal_classifier/data/collected/` for retraining
+- **ML training pipeline** (`code/ml/signal_classifier/`): RadioML 2018.01A dataset loader with custom class integration, MobileNetV2 fine-tuning with differential learning rates, ONNX export, Hailo DFC compilation for HAILO8L, model evaluation with confusion matrix
+- **Classification panel UI** (`classifier.js` + `classifier.css`): always-visible panel with current modulation type display, confidence bar (color-coded), spectrogram waterfall canvas, scrolling classification history feed, accuracy tracker vs preset ground truth
+- **Preset ground truth**: `expected_modulation` field added to all 19 frequency presets
+- **REST endpoint**: `GET /api/classifier/status` (backend, total classifications, accuracy)
+- **Socket.IO event**: `signal_classified` (modulation, confidence, frequency, timestamp, uncertain flag)
+- **Unit tests**: 21 tests (IQ-to-spectrogram conversion, image normalization, confidence filtering, uncertainty detection, CPU fallback, status tracking, synthetic signals)
+- **Integration test**: 7 tests (end-to-end classification, event emission, accuracy tracking, self-supervised logging, preset validation)
+
+### Added — Phase 17: Specific Emitter Identification (SEI)
+
+- **SEI model** (`sei_model.py`): passive RF fingerprinting via 1D CNN + attention on raw IQ samples, producing 128-dimensional L2-normalized embedding vectors. Cosine similarity matching (threshold 0.85) against local emitter database. Automatic enrollment of new emitters with sequential IDs (EMITTER-001, etc). Exponential moving average centroid updates on re-identification. Atomic JSON database persistence.
+- **IQ segmenter** (`iq_segmenter.py`): transmission boundary detection from continuous IQ stream using power thresholding with hysteresis (100ms), ring buffer (10s), SNR estimation, duration filtering (50ms min, 30s max)
+- **Classifier-to-SEI wiring**: `classify_segment()` method pipes classified transmission segments to SEI, `_forward_to_sei()` with confidence/SNR/duration gating (>0.7 confidence, >15 dB SNR, >100ms duration)
+- **SEI ML training pipeline** (`code/ml/sei/`): ADS-B-labeled IQ collection script (ICAO hex ground truth), 1D CNN + SE attention model with triplet loss training, ONNX export, Hailo DFC compilation, rank-1/rank-5 accuracy evaluation
+- **Emitter tracking panel UI** (`sei.js` + `sei.css`): always-visible panel with known emitters table (sortable, inline label editing via click), re-identification feed with ID/NEW badges, new emitter alert with pulse animation, database statistics bar
+- **Emitter database** (`data/emitter_db.json`): JSON database with version tracking, sequential ID assignment, embedding centroids, frequency history, observation counts, user-assigned labels
+- **REST endpoints**: `GET /api/emitters` (paginated), `GET /api/emitters/<id>`, `POST /api/emitters/<id>/label`, `GET /api/sei/status`
+- **Socket.IO events**: `emitter_identified` (re-identification with confidence), `new_emitter` (enrollment notification)
+- **Unit tests**: 10 IQ segmenter tests (power computation, boundary detection, hysteresis, SNR, duration filtering) + 22 SEI model tests (cosine similarity, L2 normalization, database CRUD, EMA updates, identification, status)
+- **Integration test**: 7 tests (enrollment/re-identification, multi-emitter, persistence, API, labeling, classifier-to-SEI forwarding)
+
+### Operational note
+
+SEI operates in passive receive-only mode. No transmission occurs. All monitored signals are from third-party transmitters in publicly accessible spectrum. The system identifies hardware characteristics only — it does not decrypt encrypted signals.
+
 ## [0.7.0] — 2026-03-16
 
 ### Added — Phase 15: Passive Meteor Scatter Detection

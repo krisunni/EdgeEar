@@ -84,6 +84,7 @@ pip install --upgrade pip -q
 echo "Installing Python packages (torch is large, this may take a few minutes)..."
 pip install -r "$(dirname "$0")/requirements.txt"
 pip install -e "$(dirname "$0")" -q
+pip install pyrtlsdr==0.2.93 -q && pass "pyrtlsdr installed (direct IQ capture)" || warn "pyrtlsdr install failed — will use rtl_fm subprocess fallback"
 pass "Python packages installed"
 
 # ── Step 6: dump1090 for ADS-B (optional) ──
@@ -190,6 +191,17 @@ echo "  - RTL-SDR Blog V4 supports HF via -D 2 (Q-branch direct sampling)"
 echo "  - Long wire antenna (5-10m) strongly recommended for HF reception"
 echo "  - fldigi requires Xvfb on headless Raspberry Pi"
 echo ""
+
+# ── Step 6d: Signal classifier & SEI data directories ──
+mkdir -p "$(dirname "$0")/ml/signal_classifier/data/collected"
+mkdir -p "$(dirname "$0")/ml/signal_classifier/checkpoints"
+mkdir -p "$(dirname "$0")/ml/signal_classifier/exports"
+mkdir -p "$(dirname "$0")/ml/signal_classifier/reports"
+mkdir -p "$(dirname "$0")/ml/sei/data/collected"
+mkdir -p "$(dirname "$0")/ml/sei/checkpoints"
+mkdir -p "$(dirname "$0")/ml/sei/exports"
+mkdir -p "$(dirname "$0")/ml/sei/reports"
+pass "Signal classifier & SEI directories created"
 
 # ── Step 7: RTL-SDR Blog V4 driver ──
 # MUST run after dump1090 install — dump1090-mutability pulls in stock librtlsdr0

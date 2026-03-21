@@ -70,6 +70,14 @@ class InputSource:
         """Set callback for error/recovery notifications: callback(event, data)."""
         self._error_callback = callback
 
+    def set_iq_callback(self, callback):
+        """Set callback for raw IQ chunks (SDR pyrtlsdr mode only).
+
+        callback(iq_samples, frequency_hz) called for each IQ chunk.
+        """
+        if self.mode == "SDR" and hasattr(self._source, 'set_iq_callback'):
+            self._source.set_iq_callback(callback)
+
     def tune(self, preset):
         """Tune to a preset. Uses stream_url in WEBSTREAM mode, freq in SDR mode."""
         if self._apt_mode:
@@ -236,9 +244,8 @@ class InputSource:
             return False
 
         self._apt_saved_preset = self.current_preset
-        was_running = self.is_running
-        if was_running:
-            self._source.stop()
+        # Always stop the source to release the USB device
+        self._source.stop()
 
         self._apt_mode = True
         log.info("Entered APT mode — SDR dedicated to %s", frequency_mhz)
@@ -284,9 +291,8 @@ class InputSource:
             return False
 
         self._wefax_saved_preset = self.current_preset
-        was_running = self.is_running
-        if was_running:
-            self._source.stop()
+        # Always stop the source to release the USB device, even if not "running"
+        self._source.stop()
 
         self._wefax_mode = True
         log.info("Entered WEFAX mode — SDR dedicated to %.1f kHz HF direct sampling", frequency_khz)

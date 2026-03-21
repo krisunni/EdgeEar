@@ -1,0 +1,236 @@
+/* Emitter Tracking Panel Styles */
+
+#sei-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+#sei-panel .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#sei-panel .panel-header label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 0;
+}
+
+/* ── Stats Bar ── */
+
+.sei-stats-bar {
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+}
+
+.sei-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sei-stat-label {
+    color: var(--text-dim);
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.sei-stat-value {
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* ── New Emitter Alert ── */
+
+#sei-new-alert {
+    background: rgba(188, 140, 255, 0.15);
+    border: 1px solid #bc8cff;
+    border-radius: 4px;
+    color: #bc8cff;
+    font-size: 12px;
+    padding: 6px 12px;
+    margin-bottom: 10px;
+    animation: sei-pulse 1s ease-in-out 3;
+}
+
+@keyframes sei-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* ── Emitter Table ── */
+
+.sei-section-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    margin-top: 10px;
+}
+
+.sei-emitter-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 12px;
+}
+
+.sei-emitter-table th {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+}
+
+.sei-emitter-table td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #21262d;
+}
+
+.sei-emitter-row:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.sei-emitter-id {
+    font-weight: 600;
+    color: #bc8cff;
+}
+
+.sei-emitter-label {
+    color: var(--text);
+}
+
+.sei-label-text {
+    cursor: pointer;
+    border-bottom: 1px dashed var(--border);
+}
+
+.sei-label-text:hover {
+    border-bottom-color: var(--accent);
+    color: var(--accent);
+}
+
+.sei-label-input {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    width: 120px;
+}
+
+.sei-last-seen {
+    color: var(--text-dim);
+    font-size: 11px;
+}
+
+.sei-freq-list {
+    color: var(--accent);
+    font-size: 11px;
+}
+
+.sei-no-data {
+    color: var(--text-dim);
+    text-align: center;
+    padding: 8px;
+    font-size: 12px;
+}
+
+/* ── Scrollable table container ── */
+
+.sei-table-wrap {
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+/* ── Recent Feed ── */
+
+.sei-recent-feed {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 4px 8px;
+}
+
+.sei-event-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    border-bottom: 1px solid #21262d;
+    font-size: 12px;
+    animation: slideIn 0.2s ease;
+}
+
+.sei-event-item:last-child {
+    border-bottom: none;
+}
+
+.sei-event-new {
+    background: rgba(188, 140, 255, 0.05);
+}
+
+.sei-event-enrolled {
+    border-left: 2px solid #bc8cff;
+    padding-left: 6px;
+}
+
+.sei-event-ts {
+    color: var(--text-dim);
+    font-size: 11px;
+    min-width: 55px;
+}
+
+.sei-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    min-width: 28px;
+    text-align: center;
+}
+
+.sei-badge-new {
+    background: rgba(188, 140, 255, 0.2);
+    color: #bc8cff;
+}
+
+.sei-badge-known {
+    background: rgba(63, 185, 80, 0.15);
+    color: var(--green);
+}
+
+.sei-event-id {
+    font-weight: 600;
+    color: #bc8cff;
+    min-width: 90px;
+}
+
+.sei-event-label {
+    color: var(--text-dim);
+    font-size: 11px;
+}
+
+.sei-event-conf {
+    color: var(--text-dim);
+    margin-left: auto;
+    font-size: 11px;
+}

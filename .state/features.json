@@ -170,6 +170,26 @@
       "components": ["meteor-detector", "meteor-analyzer", "input-source", "flask-app", "frontend"],
       "priority": "low",
       "implementation_plan": "implementation-plans/phase-15-meteor-scatter-detection.md"
+    },
+    {
+      "id": "signal-classification",
+      "name": "Signal Classification via Spectrogram CNN",
+      "description": "Real-time modulation type identification from raw IQ samples using MobileNetV2 CNN on Hailo-8L NPU. Converts IQ to spectrogram images (256-point FFT, Hann window), classifies into 11 target classes (AM, FM, WFM, SSB, P25, DMR, ADS-B, NOAA APT, WEFAX, CW, unknown). CPU heuristic fallback when Hailo unavailable. Self-supervised labeling pipeline collects confirmed samples for retraining. Always-visible UI panel with confidence bar, spectrogram waterfall, and classification history.",
+      "status": "done",
+      "phase": 16,
+      "components": ["signal-classifier", "iq-capture", "flask-app", "frontend"],
+      "priority": "high",
+      "implementation_plan": "implementation-plans/phase-16-signal-classification.md"
+    },
+    {
+      "id": "emitter-identification",
+      "name": "Specific Emitter Identification (SEI)",
+      "description": "Passive RF fingerprinting of individual transmitters via 1D CNN + attention on raw IQ samples. Produces 128-dimensional embedding vectors matched against a local emitter database using cosine similarity. New emitters enrolled automatically with sequential IDs. ADS-B transponders provide ground truth for training via ICAO hex codes. Emitter tracking panel with known emitters table, inline label editing, re-identification feed, and new emitter alerts.",
+      "status": "done",
+      "phase": 17,
+      "components": ["sei-model", "iq-segmenter", "signal-classifier", "flask-app", "frontend"],
+      "priority": "medium",
+      "implementation_plan": "implementation-plans/phase-17-specific-emitter-identification.md"
     }
   ]
 }

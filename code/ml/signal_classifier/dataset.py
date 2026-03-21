@@ -1,0 +1,332 @@
+#!/usr/bin/env python3
+"""RadioML dataset loader and custom class generator for signal classification.
+
+Loads RadioML 2018.01A (DeepSig) HDF5 dataset, converts IQ samples to
+spectrograms, and integrates custom classes (ADS-B, NOAA APT, WEFAX).
+
+Training pipeline runs on x86, NOT on Raspberry Pi.
+"""
+
+import json
+import os
+import sys
+
+import numpy as np
+
+# Spectrogram parameters (match signal_classifier.py)
+FFT_SIZE = 256
+FFT_HOP = FFT_SIZE // 2
+SPECTROGRAM_SIZE = 224
+
+# Target modulation classes for ravenSDR
+TARGET_CLASSES = [
+    "AM", "FM", "WFM", "SSB", "P25", "DMR",
+    "ADSB", "NOAA_APT", "WEFAX", "CW", "unknown",
+]
+
+# RadioML 2018.01A class name mapping to ravenSDR classes
+RADIOML_CLASS_MAP = {
+    "OOK": "AM",
+    "4ASK": "AM",
+    "8ASK": "AM",
+    "BPSK": "unknown",
+    "QPSK": "unknown",
+    "8PSK": "unknown",
+    "16QAM": "unknown",
+    "32QAM": "unknown",
+    "64QAM": "unknown",
+    "128QAM": "unknown",
+    "256QAM": "unknown",
+    "AM-SSB-WC": "SSB",
+    "AM-SSB-SC": "SSB",
+    "AM-DSB-WC": "AM",
+    "AM-DSB-SC": "AM",
+    "FM": "FM",
+    "GMSK": "FM",
+    "OQPSK": "unknown",
+    "16APSK": "unknown",
+    "32APSK": "unknown",
+    "64APSK": "unknown",
+    "128APSK": "unknown",
+}
+
+
+def iq_to_spectrogram(iq_samples, fft_size=FFT_SIZE, hop=FFT_HOP):
+    """Convert complex IQ samples to power spectrogram."""
+    window = np.hanning(fft_size)
+    n_frames = max(1, (len(iq_samples) - fft_size) // hop + 1)
+    spectrogram = np.zeros((n_frames, fft_size), dtype=np.float64)
+
+    for i in range(n_frames):
+        start = i * hop
+        frame = iq_samples[start:start + fft_size]
+        if len(frame) < fft_size:
+            frame = np.pad(frame, (0, fft_size - len(frame)))
+        windowed = frame * window
+        fft_result = np.fft.fftshift(np.fft.fft(windowed))
+        power = np.abs(fft_result) ** 2
+        power = np.maximum(power, 1e-20)
+        spectrogram[i] = 10 * np.log10(power)
+
+    return spectrogram
+
+
+def spectrogram_to_image(spectrogram, size=SPECTROGRAM_SIZE):
+    """Normalize and resize spectrogram to uint8 image."""
+    smin = spectrogram.min()
+    smax = spectrogram.max()
+    if smax - smin < 1e-6:
+        normalized = np.zeros_like(spectrogram, dtype=np.float64)
+    else:
+        normalized = (spectrogram - smin) / (smax - smin) * 255.0
+
+    img = normalized.astype(np.uint8)
+
+    h, w = img.shape
+    if h == size and w == size:
+        return img
+
+    row_idx = np.clip((np.arange(size) * h / size).astype(int), 0, h - 1)
+    col_idx = np.clip((np.arange(size) * w / size).astype(int), 0, w - 1)
+    return img[np.ix_(row_idx, col_idx)]
+
+
+def augment_iq(iq_samples, rng=None):
+    """Apply data augmentation to IQ samples.
+
+    - Random frequency shift (±5% of bandwidth)
+    - SNR variation (additive Gaussian noise)
+    - Random phase rotation (0-2π)
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    # Phase rotation
+    phase = rng.uniform(0, 2 * np.pi)
+    iq_samples = iq_samples * np.exp(1j * phase)
+
+    # Frequency shift
+    n = len(iq_samples)
+    shift = rng.uniform(-0.05, 0.05)
+    t = np.arange(n) / n
+    iq_samples = iq_samples * np.exp(2j * np.pi * shift * t)
+
+    # SNR variation (add noise)
+    noise_level = rng.uniform(0.01, 0.3)
+    noise = noise_level * (rng.standard_normal(n) + 1j * rng.standard_normal(n)) / np.sqrt(2)
+    iq_samples = iq_samples + noise
+
+    return iq_samples
+
+
+def load_radioml(dataset_path):
+    """Load RadioML 2018.01A HDF5 dataset.
+
+    Args:
+        dataset_path: path to GOLD_XYZ_OSC.0001_1024.hdf5
+
+    Returns:
+        (iq_samples, labels, snrs) numpy arrays
+    """
+    try:
+        import h5py
+    except ImportError:
+        print("ERROR: h5py required — pip install h5py")
+        sys.exit(1)
+
+    print(f"Loading RadioML dataset from {dataset_path}...")
+    with h5py.File(dataset_path, "r") as f:
+        X = f["X"][:]  # (N, 1024, 2) — I/Q as two channels
+        Y = f["Y"][:]  # (N, 24) — one-hot labels
+        Z = f["Z"][:]  # (N,) — SNR values
+
+    # Convert to complex
+    iq = X[:, :, 0] + 1j * X[:, :, 1]
+
+    # Convert one-hot to class indices
+    labels = np.argmax(Y, axis=1)
+
+    print(f"Loaded {len(iq)} samples, {Y.shape[1]} classes")
+    return iq, labels, Z
+
+
+def load_custom_samples(data_dir, class_name):
+    """Load custom IQ samples from .npy files in a directory.
+
+    Args:
+        data_dir: directory containing .npy IQ sample files
+        class_name: class label to assign
+
+    Returns:
+        list of complex numpy arrays
+    """
+    samples = []
+    if not os.path.isdir(data_dir):
+        return samples
+
+    for fname in os.listdir(data_dir):
+        if fname.endswith(".npy"):
+            path = os.path.join(data_dir, fname)
+            try:
+                iq = np.load(path)
+                if np.iscomplexobj(iq) and len(iq) >= FFT_SIZE:
+                    samples.append(iq[:1024])  # truncate to 1024 samples
+            except Exception:
+                pass
+
+    return samples
+
+
+def build_dataset(radioml_path=None, custom_dirs=None, augment=True, seed=42):
+    """Build combined dataset of spectrograms and labels.
+
+    Args:
+        radioml_path: path to RadioML HDF5 file (optional)
+        custom_dirs: dict of {class_name: directory_path} for custom classes
+        augment: whether to apply augmentation
+        seed: random seed
+
+    Returns:
+        (images, labels, class_names) — images as (N, 224, 224) uint8,
+        labels as (N,) int, class_names as list
+    """
+    rng = np.random.default_rng(seed)
+    images = []
+    labels = []
+    class_names = TARGET_CLASSES[:]
+
+    # Load RadioML
+    if radioml_path and os.path.exists(radioml_path):
+        iq_data, radioml_labels, snrs = load_radioml(radioml_path)
+
+        # Map RadioML classes to ravenSDR classes
+        # Get RadioML class names from the dataset
+        radioml_class_names = [
+            "OOK", "4ASK", "8ASK", "BPSK", "QPSK", "8PSK",
+            "16QAM", "32QAM", "64QAM", "128QAM", "256QAM",
+            "AM-SSB-WC", "AM-SSB-SC", "AM-DSB-WC", "AM-DSB-SC",
+            "FM", "GMSK", "OQPSK",
+            "16APSK", "32APSK", "64APSK", "128APSK",
+        ]
+
+        for i in range(len(iq_data)):
+            rm_idx = radioml_labels[i]
+            if rm_idx >= len(radioml_class_names):
+                continue
+
+            rm_class = radioml_class_names[rm_idx]
+            target_class = RADIOML_CLASS_MAP.get(rm_class, "unknown")
+
+            if target_class not in class_names:
+                continue
+
+            iq = iq_data[i]
+            if augment and rng.random() > 0.5:
+                iq = augment_iq(iq, rng)
+
+            spec = iq_to_spectrogram(iq)
+            img = spectrogram_to_image(spec)
+            images.append(img)
+            labels.append(class_names.index(target_class))
+
+        print(f"Processed {len(images)} RadioML samples")
+
+    # Load custom classes
+    if custom_dirs:
+        for class_name, data_dir in custom_dirs.items():
+            if class_name not in class_names:
+                continue
+
+            samples = load_custom_samples(data_dir, class_name)
+            class_idx = class_names.index(class_name)
+
+            for iq in samples:
+                if augment and rng.random() > 0.5:
+                    iq = augment_iq(iq, rng)
+
+                spec = iq_to_spectrogram(iq)
+                img = spectrogram_to_image(spec)
+                images.append(img)
+                labels.append(class_idx)
+
+            print(f"Loaded {len(samples)} custom {class_name} samples")
+
+    if not images:
+        print("WARNING: No data loaded. Provide RadioML dataset or custom samples.")
+        return np.array([]), np.array([]), class_names
+
+    images = np.array(images, dtype=np.uint8)
+    labels = np.array(labels, dtype=np.int64)
+
+    # Save class mapping
+    class_map = {str(i): name for i, name in enumerate(class_names)}
+    return images, labels, class_names
+
+
+def split_dataset(images, labels, train_ratio=0.7, val_ratio=0.15, seed=42):
+    """Stratified train/val/test split.
+
+    Returns:
+        (train_images, train_labels, val_images, val_labels, test_images, test_labels)
+    """
+    rng = np.random.default_rng(seed)
+    n = len(images)
+    indices = np.arange(n)
+    rng.shuffle(indices)
+
+    n_train = int(n * train_ratio)
+    n_val = int(n * val_ratio)
+
+    train_idx = indices[:n_train]
+    val_idx = indices[n_train:n_train + n_val]
+    test_idx = indices[n_train + n_val:]
+
+    return (
+        images[train_idx], labels[train_idx],
+        images[val_idx], labels[val_idx],
+        images[test_idx], labels[test_idx],
+    )
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Build signal classification dataset")
+    parser.add_argument("--radioml", type=str, help="Path to RadioML HDF5 file")
+    parser.add_argument("--custom-dir", type=str, help="Directory with custom class subdirs")
+    parser.add_argument("--output", type=str, default="data/dataset.npz", help="Output path")
+    args = parser.parse_args()
+
+    custom_dirs = {}
+    if args.custom_dir:
+        for class_name in TARGET_CLASSES:
+            d = os.path.join(args.custom_dir, class_name)
+            if os.path.isdir(d):
+                custom_dirs[class_name] = d
+
+    images, labels, class_names = build_dataset(
+        radioml_path=args.radioml,
+        custom_dirs=custom_dirs if custom_dirs else None,
+    )
+
+    if len(images) > 0:
+        train_imgs, train_lbls, val_imgs, val_lbls, test_imgs, test_lbls = \
+            split_dataset(images, labels)
+
+        os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
+        np.savez_compressed(
+            args.output,
+            train_images=train_imgs, train_labels=train_lbls,
+            val_images=val_imgs, val_labels=val_lbls,
+            test_images=test_imgs, test_labels=test_lbls,
+        )
+
+        # Save class mapping
+        class_map = {str(i): name for i, name in enumerate(class_names)}
+        map_path = os.path.splitext(args.output)[0] + "_classes.json"
+        with open(map_path, "w") as f:
+            json.dump(class_map, f, indent=2)
+
+        print(f"Dataset saved: {args.output}")
+        print(f"  Train: {len(train_imgs)}, Val: {len(val_imgs)}, Test: {len(test_imgs)}")
+        print(f"  Class mapping: {map_path}")

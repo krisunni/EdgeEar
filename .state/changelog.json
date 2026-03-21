@@ -1,6 +1,64 @@
 {
   "versions": [
     {
+      "version": "1.0.0",
+      "date": "2026-03-21",
+      "status": "running",
+      "changes": [
+        {"type": "added", "description": "Persistent config system (config.json) for secondary dongle assignment — meteor detector, ADS-B, or WEFAX can be assigned to dongle 2 via UI dropdown or /api/config/secondary endpoint", "date": "2026-03-21"},
+        {"type": "added", "description": "Secondary dongle config UI in header — dropdown selector with status indicator, persists across restarts", "date": "2026-03-21"},
+        {"type": "added", "description": "Signal classifier and SEI panels wired into main UI (index.html) — always-visible when receiving audio, hidden on WEFAX/Science/ADS-B-only tabs", "date": "2026-03-21"},
+        {"type": "added", "description": "Version badge displayed in UI header from backend VERSION constant", "date": "2026-03-21"},
+        {"type": "changed", "description": "WEFAX receiver: added 2s startup health check for rtl_fm process, robust finally-block cleanup to prevent orphaned processes holding USB device", "date": "2026-03-21"},
+        {"type": "changed", "description": "WEFAX receiver: build_rtl_fm_cmd now instance method using self.device_index for multi-dongle support", "date": "2026-03-21"},
+        {"type": "changed", "description": "WEFAX scheduler: expanded priority chart types to include 48hr, 96hr, 144hr forecasts and wave charts; widened trigger window from ±10s to ±60s to prevent missed broadcasts; added dedup set to prevent double-triggers", "date": "2026-03-21"},
+        {"type": "changed", "description": "InputSource enter_apt_mode/enter_wefax_mode: always stop source to release USB device, even if not marked as running", "date": "2026-03-21"},
+        {"type": "changed", "description": "App startup: meteor detector and ADS-B stopped before WEFAX recording in single-dongle mode to prevent device contention", "date": "2026-03-21"},
+        {"type": "changed", "description": "Audio-related UI sections (signal, stats, classifier, SEI, controls) hidden on non-audio tabs (WEFAX, Science, ADS-B only, AIS only)", "date": "2026-03-21"}
+      ]
+    },
+    {
+      "version": "0.9.1",
+      "date": "2026-03-17",
+      "status": "running",
+      "changes": [
+        {"type": "changed", "description": "Replaced rtl_fm subprocess with pyrtlsdr direct IQ capture as main audio pipeline. Raw IQ samples now flow to signal classifier, IQ segmenter, SEI emitter fingerprinter, and live spectrogram waterfall in real time. Demodulated PCM audio still flows to Whisper transcriber and browser audio stream unchanged.", "date": "2026-03-17"},
+        {"type": "added", "description": "Dual-path Tuner: auto-detects pyrtlsdr at startup, delegates all methods to IQCapture when available, falls back to rtl_fm subprocess unchanged if pyrtlsdr not installed", "date": "2026-03-17"},
+        {"type": "added", "description": "Python DSP pipeline in iq_capture.py: FM demod (conjugate product discriminator), AM demod (envelope detection), WFM demod, squelch gate (RMS thresholding), de-emphasis filter (75μs single-pole IIR), frequency string parser", "date": "2026-03-17"},
+        {"type": "added", "description": "Live IQ pipeline wiring in app.py: IQSegmenter detects transmission boundaries every chunk, signal classifier runs every 500ms, spectrogram_row Socket.IO event emitted every 300ms for waterfall UI", "date": "2026-03-17"},
+        {"type": "added", "description": "Spectrogram waterfall now renders live data — classifier.js binds spectrogram_row event to existing _renderWaterfall() method", "date": "2026-03-17"},
+        {"type": "added", "description": "InputSource.set_iq_callback() passthrough for wiring raw IQ from Tuner to classifier pipeline", "date": "2026-03-17"},
+        {"type": "added", "description": "Environment variables CLASSIFIER_HEF_PATH, CLASSIFIER_CLASSES_PATH, SEI_HEF_PATH for NPU model deployment without code changes", "date": "2026-03-17"},
+        {"type": "added", "description": "NPU model training guide (operations/npu-model-training.md): Mac ARM64 training workflow, 7-step classifier pipeline, 6-step SEI pipeline, HEF compilation via Docker/DFC, deployment instructions, troubleshooting", "date": "2026-03-17"},
+        {"type": "changed", "description": "IQ capture sample rate reduced from 2.4 MHz to 240 kHz (matches rtl_fm 200k bandwidth, reduces CPU load on Pi 5)", "date": "2026-03-17"},
+        {"type": "changed", "description": "setup.sh: added pip install pyrtlsdr, signal classifier and SEI data directories", "date": "2026-03-17"},
+        {"type": "added", "description": "Unit tests: 34 new tests for DSP functions (freq parsing, FM/AM/WFM demod, squelch, de-emphasis, PCM conversion, IQCapture interface)", "date": "2026-03-17"},
+        {"type": "fixed", "description": "Meteor detector, APT decoder, WEFAX receiver unchanged — keep independent rtl_fm instances (different sample rates, pipe to sox/fldigi)", "date": "2026-03-17"}
+      ]
+    },
+    {
+      "version": "0.9.0",
+      "date": "2026-03-17",
+      "status": "running",
+      "changes": [
+        {"type": "added", "description": "Phase 16 — Signal Classification via Spectrogram CNN: real-time modulation identification (AM, FM, WFM, SSB, P25, DMR, ADS-B, NOAA APT, WEFAX, CW) from IQ spectrograms using MobileNetV2 on Hailo-8L NPU with CPU heuristic fallback", "date": "2026-03-17"},
+        {"type": "added", "description": "signal_classifier.py — IQ-to-spectrogram conversion (256-point FFT, Hann window, 50% overlap), spectrogram normalization to 224x224 uint8, Hailo inference wrapper, confidence thresholding (>0.7), uncertainty detection, self-supervised sample collection", "date": "2026-03-17"},
+        {"type": "added", "description": "iq_capture.py — direct IQ capture via pyrtlsdr bypassing rtl_fm, FM/AM demodulation from raw IQ, device mutex to prevent concurrent access with rtl_fm", "date": "2026-03-17"},
+        {"type": "added", "description": "ML training pipeline (code/ml/signal_classifier/) — RadioML 2018.01A dataset loader, MobileNetV2 fine-tuning with differential learning rates, ONNX export, Hailo DFC compilation for HAILO8L, model evaluation with confusion matrix", "date": "2026-03-17"},
+        {"type": "added", "description": "Signal classification panel UI (classifier.js + classifier.css) — always-visible panel with current modulation type, confidence bar, spectrogram waterfall canvas, scrolling classification history, accuracy tracker vs preset ground truth", "date": "2026-03-17"},
+        {"type": "added", "description": "expected_modulation field added to all 19 frequency presets for ground truth comparison and self-supervised labeling", "date": "2026-03-17"},
+        {"type": "added", "description": "GET /api/classifier/status endpoint and signal_classified Socket.IO event", "date": "2026-03-17"},
+        {"type": "added", "description": "Phase 17 — Specific Emitter Identification (SEI): passive RF fingerprinting via 1D CNN + attention on raw IQ, 128-dimensional embedding vectors, cosine similarity matching against local emitter database, automatic enrollment of new emitters", "date": "2026-03-17"},
+        {"type": "added", "description": "sei_model.py — Hailo-8L inference for 128-dim embeddings, cosine similarity matcher (threshold 0.85), emitter database with atomic JSON persistence, exponential moving average centroid updates, sequential ID assignment (EMITTER-001, etc)", "date": "2026-03-17"},
+        {"type": "added", "description": "iq_segmenter.py — transmission boundary detection from continuous IQ stream using power thresholding with hysteresis, ring buffer, SNR estimation, min/max duration filtering (50ms–30s)", "date": "2026-03-17"},
+        {"type": "added", "description": "SEI ML training pipeline (code/ml/sei/) — ADS-B-labeled IQ collection script, 1D CNN + SE attention triplet loss training, ONNX export, Hailo DFC compilation, rank-1/rank-5 accuracy evaluation", "date": "2026-03-17"},
+        {"type": "added", "description": "Emitter tracking panel UI (sei.js + sei.css) — always-visible panel with known emitters table (sortable, inline label editing), re-identification feed with ID/NEW badges, new emitter alerts, database statistics", "date": "2026-03-17"},
+        {"type": "added", "description": "GET /api/emitters (paginated), GET /api/emitters/<id>, POST /api/emitters/<id>/label, GET /api/sei/status endpoints and emitter_identified, new_emitter Socket.IO events", "date": "2026-03-17"},
+        {"type": "added", "description": "Classifier-to-SEI pipeline wiring: classify_segment() method, _forward_to_sei() with confidence/SNR/duration gating", "date": "2026-03-17"},
+        {"type": "added", "description": "Unit tests: 21 signal classifier tests + 10 IQ segmenter tests + 22 SEI model tests. Integration tests: 7 classifier pipeline + 7 SEI pipeline (67 new tests total)", "date": "2026-03-17"}
+      ]
+    },
+    {
       "version": "0.7.0",
       "date": "2026-03-16",
       "status": "running",

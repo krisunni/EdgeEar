@@ -45,8 +45,11 @@ NOJ_SCHEDULE = [
 
 NOJ_FREQUENCIES = [2054.0, 4298.0, 8459.0, 12412.0]
 
-# Priority chart types (surface analysis and 24hr forecasts are most useful)
-PRIORITY_CHART_TYPES = {"surface_analysis", "24hr_forecast"}
+# Priority chart types — record all chart types to maximize data collection
+PRIORITY_CHART_TYPES = {
+    "surface_analysis", "24hr_forecast", "48hr_forecast",
+    "96hr_forecast", "144hr_forecast", "wave_chart",
+}
 
 
 def select_frequency(frequencies, utc_hour):
@@ -82,6 +85,7 @@ class WefaxScheduler:
         self._running = False
         self._thread = None
         self._notified_broadcasts = set()  # keys already notified
+        self._triggered_broadcasts = set()  # keys already triggered for recording
 
     def start(self):
         if self._running:
@@ -174,12 +178,19 @@ class WefaxScheduler:
                          b["station"], b["chart_type"], b["start_utc"], b["frequency_khz"])
 
             # Trigger recording at broadcast time (only for priority charts)
-            if -10 <= time_until <= 10 and b["priority"] and self.on_broadcast_start:
+            # Window must be wider than the 30s check interval to avoid missing broadcasts
+            if -60 <= time_until <= 60 and b["priority"] and broadcast_key not in self._triggered_broadcasts and self.on_broadcast_start:
+                self._triggered_broadcasts.add(broadcast_key)
                 self.on_broadcast_start(b)
 
-        # Prune old notification keys (older than 1 hour)
+        # Prune old keys (older than 1 hour)
         cutoff = now - datetime.timedelta(hours=1)
+        cutoff_str = cutoff.strftime("%Y-%m-%dT%H:%M:%SZ")
         self._notified_broadcasts = {
             k for k in self._notified_broadcasts
-            if k.split("_", 1)[1] > cutoff.strftime("%Y-%m-%dT%H:%M:%SZ")
+            if k.split("_", 1)[1] > cutoff_str
+        }
+        self._triggered_broadcasts = {
+            k for k in self._triggered_broadcasts
+            if k.split("_", 1)[1] > cutoff_str
         }

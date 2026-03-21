@@ -12,6 +12,7 @@ PRESETS = [
         "parser": "noaa",
         "stream_url": "https://wxradio.org/streams/seattle.mp3",
         "note": "NWS Seattle 24/7 weather radio",
+        "expected_modulation": "FM",
     },
     {
         "id": "noaa-monterey",
@@ -23,6 +24,7 @@ PRESETS = [
         "parser": "noaa",
         "stream_url": "https://wxradio.org/streams/monterey.mp3",
         "note": "NWS Monterey — primary dev/test stream",
+        "expected_modulation": "FM",
     },
     {
         "id": "noaa-portland",
@@ -34,6 +36,7 @@ PRESETS = [
         "parser": "noaa",
         "stream_url": "https://wxradio.org/streams/portland.mp3",
         "note": "NWS Portland weather radio",
+        "expected_modulation": "FM",
     },
     {
         "id": "kuow-fm",
@@ -44,6 +47,7 @@ PRESETS = [
         "squelch": 0,
         "stream_url": "https://npr-ice.streamguys1.com/live.mp3",
         "note": "NPR Seattle",
+        "expected_modulation": "WFM",
     },
     # ── Aviation ──
     {
@@ -55,6 +59,7 @@ PRESETS = [
         "squelch": 30,
         "stream_url": "https://www.liveatc.net/hlisten.php?mount=ksea_app&icao=ksea",
         "note": "SEA-TAC airport info",
+        "expected_modulation": "AM",
     },
     {
         "id": "ksea-tower",
@@ -65,6 +70,7 @@ PRESETS = [
         "squelch": 30,
         "stream_url": "https://www.liveatc.net/hlisten.php?mount=ksea_twr&icao=ksea",
         "note": "SEA-TAC tower control",
+        "expected_modulation": "AM",
     },
     {
         "id": "ksea-approach",
@@ -74,6 +80,7 @@ PRESETS = [
         "category": "aviation",
         "squelch": 30,
         "note": "SEA-TAC approach control — SDR only",
+        "expected_modulation": "AM",
     },
     {
         "id": "kbfi-tower",
@@ -83,6 +90,7 @@ PRESETS = [
         "category": "aviation",
         "squelch": 30,
         "note": "Boeing Field / King County — SDR only",
+        "expected_modulation": "AM",
     },
     {
         "id": "kpae-tower",
@@ -92,6 +100,7 @@ PRESETS = [
         "category": "aviation",
         "squelch": 30,
         "note": "Paine Field / Snohomish County — SDR only",
+        "expected_modulation": "AM",
     },
     {
         "id": "adsb-1090",
@@ -102,6 +111,7 @@ PRESETS = [
         "squelch": 0,
         "note": "ADS-B aircraft tracking (dump1090) — map-only mode",
         "device_index": 1,
+        "expected_modulation": "ADSB",
     },
     # ── Marine ──
     {
@@ -112,6 +122,7 @@ PRESETS = [
         "category": "marine",
         "squelch": 0,
         "note": "AIS vessel tracking (rtl_ais) — map-only mode",
+        "expected_modulation": "FM",
     },
     {
         "id": "marine-ch16",
@@ -121,6 +132,7 @@ PRESETS = [
         "category": "marine",
         "squelch": 20,
         "note": "International distress/calling — SDR only",
+        "expected_modulation": "FM",
     },
     {
         "id": "marine-ch22a",
@@ -130,6 +142,7 @@ PRESETS = [
         "category": "marine",
         "squelch": 20,
         "note": "US Coast Guard liaison — SDR only",
+        "expected_modulation": "FM",
     },
     # ── WEFAX (HF Weather Charts) ──
     {
@@ -140,6 +153,7 @@ PRESETS = [
         "category": "wefax",
         "squelch": 0,
         "note": "WEFAX weather charts — HF direct sampling, auto-scheduled",
+        "expected_modulation": "WEFAX",
     },
     {
         "id": "wefax-noj",
@@ -149,6 +163,7 @@ PRESETS = [
         "category": "wefax",
         "squelch": 0,
         "note": "WEFAX weather charts — HF direct sampling, auto-scheduled",
+        "expected_modulation": "WEFAX",
     },
     # ── Public Safety ──
     {
@@ -159,6 +174,7 @@ PRESETS = [
         "category": "public_safety",
         "squelch": 25,
         "note": "King County Sheriff dispatch — SDR only (may be encrypted)",
+        "expected_modulation": "FM",
     },
     {
         "id": "seattle-fire",
@@ -168,6 +184,7 @@ PRESETS = [
         "category": "public_safety",
         "squelch": 25,
         "note": "Seattle Fire dispatch — SDR only (may be encrypted)",
+        "expected_modulation": "FM",
     },
     # ── Science ──
     {
@@ -178,6 +195,7 @@ PRESETS = [
         "category": "science",
         "squelch": 0,
         "note": "Passive meteor detection — forward scatter on 143.050 MHz carrier",
+        "expected_modulation": "FM",
     },
     # ── Broadcast ──
     {
@@ -188,6 +206,7 @@ PRESETS = [
         "category": "broadcast",
         "squelch": 0,
         "note": "KEXP Seattle",
+        "expected_modulation": "WFM",
     },
 ]
 

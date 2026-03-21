@@ -9,11 +9,23 @@
     <link rel="stylesheet" href="/static/satellite.css">
     <link rel="stylesheet" href="/static/wefax.css">
     <link rel="stylesheet" href="/static/meteor.css">
+    <link rel="stylesheet" href="/static/classifier.css">
+    <link rel="stylesheet" href="/static/sei.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css" />
 </head>
 <body>
     <header>
-        <h1>ravenSDR <span id="mode-badge" class="badge">--</span></h1>
+        <h1>ravenSDR <span id="mode-badge" class="badge">--</span> <span id="version-badge" class="badge badge-version"></span></h1>
+        <div class="secondary-config">
+            <label>Dongle 2:</label>
+            <select id="secondary-select">
+                <option value="">Off</option>
+                <option value="adsb">ADS-B</option>
+                <option value="meteor">Meteor</option>
+                <option value="wefax">WEFAX</option>
+            </select>
+            <span id="secondary-status" class="secondary-indicator"></span>
+        </div>
         <div id="connection-banner" class="banner hidden">Connecting...</div>
         <div id="error-banner" class="banner banner-error hidden">
             <span class="error-message"></span>
@@ -71,6 +83,86 @@
                 </div>
             </div>
         </section>
+
+        <!-- Signal Classification -->
+        <div id="classifier-panel">
+            <div class="panel-header">
+                <label>Signal Classification</label>
+                <div class="clf-stats-bar">
+                    <div class="clf-stat">
+                        <span class="clf-stat-label">Backend</span>
+                        <span class="clf-stat-value" id="clf-backend">&mdash;</span>
+                    </div>
+                    <div class="clf-stat">
+                        <span class="clf-stat-label">Total</span>
+                        <span class="clf-stat-value" id="clf-total">0</span>
+                    </div>
+                    <div class="clf-stat">
+                        <span class="clf-stat-label">Accuracy</span>
+                        <span class="clf-stat-value" id="clf-accuracy">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="clf-current">
+                <span class="clf-mod-type" id="clf-current-mod">--</span>
+                <div class="clf-conf-wrap">
+                    <span class="clf-conf-label">Confidence</span>
+                    <div class="clf-conf-bar">
+                        <div class="clf-conf-bar-fill" id="clf-conf-bar-fill"></div>
+                    </div>
+                </div>
+                <span class="clf-conf-value" id="clf-current-conf">--%</span>
+                <span class="clf-current-freq" id="clf-current-freq"></span>
+                <span id="clf-uncertain" class="hidden">UNCERTAIN</span>
+            </div>
+
+            <div class="clf-waterfall-wrap">
+                <div class="clf-waterfall-label">Spectrogram</div>
+                <canvas id="clf-waterfall-canvas" width="512" height="80"></canvas>
+            </div>
+
+            <div class="clf-feed-label">Classification History</div>
+            <div id="clf-history-feed" class="clf-history-feed"></div>
+        </div>
+
+        <!-- Emitter Tracking (SEI) -->
+        <div id="sei-panel">
+            <div class="panel-header">
+                <label>Emitter Tracking</label>
+                <div class="sei-stats-bar">
+                    <div class="sei-stat">
+                        <span class="sei-stat-label">Backend</span>
+                        <span class="sei-stat-value" id="sei-backend">&mdash;</span>
+                    </div>
+                    <div class="sei-stat">
+                        <span class="sei-stat-label">Emitters</span>
+                        <span class="sei-stat-value" id="sei-emitter-count">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sei-new-alert" class="hidden"></div>
+
+            <div class="sei-section-label">Known Emitters</div>
+            <div class="sei-table-wrap">
+                <table class="sei-emitter-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Label</th>
+                            <th>Obs</th>
+                            <th>Last Seen</th>
+                            <th>Frequencies</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sei-emitter-tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="sei-section-label">Recent Identifications</div>
+            <div id="sei-recent-feed" class="sei-recent-feed"></div>
+        </div>
 
         <!-- Controls -->
         <section id="control-section">
@@ -310,6 +402,8 @@
     <script src="/static/satellite.js"></script>
     <script src="/static/wefax.js"></script>
     <script src="/static/meteor.js"></script>
+    <script src="/static/classifier.js"></script>
+    <script src="/static/sei.js"></script>
     <script src="/static/ravensdr.js"></script>
 </body>
 </html>

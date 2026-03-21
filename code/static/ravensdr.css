@@ -59,6 +59,41 @@ header h1 {
 
 .badge-sdr { background: #1a3a2a; color: var(--green); }
 .badge-webstream { background: #1a2a3a; color: var(--accent); }
+.badge-version { background: transparent; color: var(--text-dim); font-size: 10px; }
+
+/* ── Secondary Dongle Config ── */
+
+.secondary-config {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    font-size: 11px;
+}
+
+.secondary-config label {
+    color: var(--text-dim);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.secondary-config select {
+    font-size: 11px;
+    padding: 2px 6px;
+}
+
+.secondary-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+}
+
+.secondary-indicator.active {
+    background: var(--green);
+    box-shadow: 0 0 4px var(--green);
+}
 
 .banner {
     background: var(--yellow);
